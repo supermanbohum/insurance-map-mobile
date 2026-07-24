@@ -1,0 +1,270 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  BackHandler,
+  Linking,
+  Platform,
+  StyleSheet,
+  Text,
+  ToastAndroid,
+  View,
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import NetInfo from '@react-native-community/netinfo';
+import * as SplashScreen from 'expo-splash-screen';
+import * as Location from 'expo-location';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as MediaLibrary from 'expo-media-library';
+import WebView, { type WebViewNavigation } from 'react-native-webview';
+
+// 실제 배포된 보험맵 웹을 그대로 감싼다 - 기존 웹/DB/API는 절대 건드리지 않는다.
+const APP_URL = 'https://insurance-community.vercel.app';
+const APP_HOST = 'insurance-community.vercel.app';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/** 앱 도메인 안에서의 이동은 WebView 내부에서, 그 외(카카오/전화/문자/메일/외부 링크)는 밖으로 내보낸다. */
+function isAppDomain(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === APP_HOST;
+  } catch {
+    return false;
+  }
+}
+
+const EXTERNAL_SCHEMES = ['tel:', 'sms:', 'mailto:', 'kakaotalk:', 'kakaolink:', 'intent:'];
+
+function shouldOpenExternally(url: string): boolean {
+  if (EXTERNAL_SCHEMES.some((scheme) => url.startsWith(scheme))) return true;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return !isAppDomain(url);
+  }
+  // about:blank, data:, javascript: 등은 WebView 내부에서 그대로 처리.
+  return false;
+}
+
+async function openExternally(url: string) {
+  try {
+    await Linking.openURL(url);
+  } catch {
+    // 카카오톡 등 대상 앱이 없는 경우 - 조용히 무시(웹뷰가 멈추지 않게).
+  }
+}
+
+function showToast(message: string) {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  }
+}
+
+function OfflineBanner() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.offlineBanner, { paddingTop: insets.top + 10 }]}>
+      <Text style={styles.offlineText}>인터넷 연결이 끊어졌습니다</Text>
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainScreen />
+    </SafeAreaProvider>
+  );
+}
+
+function MainScreen() {
+  const webViewRef = useRef<WebView>(null);
+  const insets = useSafeAreaInsets();
+
+  const [isConnected, setIsConnected] = useState(true);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [webViewKey, setWebViewKey] = useState(0);
+  const backPressedOnceRef = useRef(false);
+
+  // 인터넷 끊김 감지.
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsConnected(Boolean(state.isConnected && state.isInternetReachable !== false));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // GPS 권한 - 지도 기능에서 내 위치를 쓰므로 앱 시작 시 미리 요청.
+  useEffect(() => {
+    Location.requestForegroundPermissionsAsync().catch(() => {});
+  }, []);
+
+  // 하드웨어 뒤로가기: 웹뷰 히스토리가 있으면 웹뷰 뒤로, 없으면 두 번 눌러야 종료.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const handler = () => {
+      if (canGoBack) {
+        webViewRef.current?.goBack();
+        return true;
+      }
+      if (backPressedOnceRef.current) {
+        BackHandler.exitApp();
+        return true;
+      }
+      backPressedOnceRef.current = true;
+      showToast('한 번 더 누르면 종료됩니다');
+      setTimeout(() => {
+        backPressedOnceRef.current = false;
+      }, 2000);
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => subscription.remove();
+  }, [canGoBack]);
+
+  const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
+    setCanGoBack(navState.canGoBack);
+  }, []);
+
+  const handleShouldStartLoad = useCallback((request: { url: string }) => {
+    const { url } = request;
+    if (shouldOpenExternally(url)) {
+      openExternally(url);
+      return false;
+    }
+    return true;
+  }, []);
+
+  /** Android 전용: WebView가 다운로드 가능한 파일(blob/Content-Disposition)을 만나면 호출된다. */
+  const handleFileDownload = useCallback(async (event: { nativeEvent: { downloadUrl: string } }) => {
+    const { downloadUrl } = event.nativeEvent;
+    try {
+      const fileName = downloadUrl.split('/').pop()?.split('?')[0] || `download-${Date.now()}`;
+      const dest = FileSystem.cacheDirectory + fileName;
+      const { uri } = await FileSystem.downloadAsync(downloadUrl, dest);
+
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status === 'granted') {
+        await MediaLibrary.saveToLibraryAsync(uri);
+        Alert.alert('다운로드 완료', `${fileName}\n갤러리(다운로드 폴더)에 저장되었습니다.`);
+      } else {
+        Alert.alert('다운로드 완료', `${fileName}\n앱 임시 폴더에 저장되었습니다. (저장소 접근 권한 없음)`);
+      }
+    } catch {
+      Alert.alert('다운로드 실패', '파일을 다운로드하지 못했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  }, []);
+
+  const handleReload = useCallback(() => {
+    setWebViewKey((k) => k + 1);
+  }, []);
+
+  const handleLoadEnd = useCallback(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      {!isConnected ? (
+        <View style={[styles.offlineContainer, { paddingTop: insets.top }]}>
+          <OfflineBanner />
+          <View style={styles.offlineCenter}>
+            <Text style={styles.offlineTitle}>오프라인 상태입니다</Text>
+            <Text style={styles.offlineSubtitle}>Wi-Fi 또는 모바일 데이터 연결을 확인해주세요.</Text>
+            <Text style={styles.retryButton} onPress={handleReload}>
+              다시 시도
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <WebView
+          key={webViewKey}
+          ref={webViewRef}
+          source={{ uri: APP_URL }}
+          style={styles.webview}
+          onNavigationStateChange={handleNavigationStateChange}
+          onShouldStartLoadWithRequest={handleShouldStartLoad}
+          onFileDownload={handleFileDownload}
+          onLoadEnd={handleLoadEnd}
+          // 로그인 유지: 쿠키/로컬스토리지를 지우지 않고 그대로 재사용.
+          sharedCookiesEnabled
+          thirdPartyCookiesEnabled
+          domStorageEnabled
+          javaScriptEnabled
+          cacheEnabled
+          incognito={false}
+          // GPS: 웹 페이지의 navigator.geolocation이 동작하도록 허용
+          // (권한 다이얼로그는 ACCESS_FINE_LOCATION이 승인된 상태에서 OS가 자동으로 처리한다).
+          geolocationEnabled
+          // 카메라/갤러리 업로드(<input type="file">)는 Android WebView가 기본 제공하는
+          // 파일 선택창(onShowFileChooser)을 통해 자동으로 동작한다 - CAMERA/저장소 권한만
+          // 승인되어 있으면 별도 JS 처리가 필요 없다.
+          allowFileAccess
+          allowFileAccessFromFileURLs
+          allowUniversalAccessFromFileURLs={false}
+          mediaPlaybackRequiresUserAction={false}
+          setSupportMultipleWindows={false}
+          startInLoadingState
+          pullToRefreshEnabled
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#152D70',
+  },
+  webview: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  offlineContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  offlineBanner: {
+    backgroundColor: '#B91C1C',
+    paddingBottom: 8,
+    alignItems: 'center',
+  },
+  offlineText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  offlineCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 32,
+  },
+  offlineTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  offlineSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  retryButton: {
+    marginTop: 20,
+    color: '#152D70',
+    fontSize: 15,
+    fontWeight: '700',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: '#152D70',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+});

@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "보험맵",
+    "slug": "insurance-community-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "boheommap",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.boheommap.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#152D70",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#152D70"
+        }
+      ],
+      "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
+          }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "보험맵이 내 주변 GA 지점을 지도에 표시하기 위해 위치 정보를 사용합니다."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "다운로드한 이미지를 갤러리에 저장하기 위해 접근합니다.",
+          "savePhotosPermission": "다운로드한 이미지를 갤러리에 저장하기 위해 접근합니다."
+        }
+      ]
+    ]
+  }
+}
