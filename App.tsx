@@ -24,11 +24,16 @@ const APP_HOST = 'insurance-community.vercel.app';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-/** 앱 도메인 안에서의 이동은 WebView 내부에서, 그 외(카카오/전화/문자/메일/외부 링크)는 밖으로 내보낸다. */
+// 로그인(카카오/구글 OAuth)은 앱 도메인 -> Supabase -> Kakao/Google -> 다시 Supabase -> 앱 도메인
+// 순서로 리다이렉트가 이어진다. 이 중 하나라도 "외부 브라우저"로 튕겨나가면 세션 쿠키가
+// WebView가 아닌 시스템 브라우저에 저장되어 로그인이 끝나도 앱에는 반영되지 않는다.
+// 그래서 이 도메인들은 반드시 WebView 안에서 그대로 이동해야 한다.
+const OAUTH_HOST_SUFFIXES = ['.supabase.co', '.kakao.com', '.google.com', '.googleapis.com', '.googleusercontent.com'];
+
 function isAppDomain(url: string): boolean {
   try {
     const { hostname } = new URL(url);
-    return hostname === APP_HOST;
+    return hostname === APP_HOST || OAUTH_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
   } catch {
     return false;
   }
