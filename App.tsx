@@ -81,6 +81,9 @@ export default function App() {
   );
 }
 
+const MIN_SPLASH_MS = 1500;
+const MAX_SPLASH_MS = 4000;
+
 function MainScreen() {
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
@@ -89,6 +92,8 @@ function MainScreen() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
   const backPressedOnceRef = useRef(false);
+  const splashShownAtRef = useRef(Date.now());
+  const splashHiddenRef = useRef(false);
 
   // 인터넷 끊김 감지.
   useEffect(() => {
@@ -101,6 +106,19 @@ function MainScreen() {
   // GPS 권한 - 지도 기능에서 내 위치를 쓰므로 앱 시작 시 미리 요청.
   useEffect(() => {
     Location.requestForegroundPermissionsAsync().catch(() => {});
+  }, []);
+
+  // 스플래시가 너무 짧게(깜빡) 보이거나 너무 오래(먹통처럼) 떠 있지 않도록
+  // 최소/최대 노출 시간을 둔다 - 로딩이 아주 빨라도 최소 시간은 채우고,
+  // 네트워크가 느려도 일정 시간 뒤에는 강제로 넘어간다.
+  useEffect(() => {
+    const maxTimer = setTimeout(() => {
+      if (!splashHiddenRef.current) {
+        splashHiddenRef.current = true;
+        SplashScreen.hideAsync().catch(() => {});
+      }
+    }, MAX_SPLASH_MS);
+    return () => clearTimeout(maxTimer);
   }, []);
 
   // 하드웨어 뒤로가기: 웹뷰 히스토리가 있으면 웹뷰 뒤로, 없으면 두 번 눌러야 종료.
@@ -166,14 +184,23 @@ function MainScreen() {
   }, []);
 
   const handleLoadEnd = useCallback(() => {
-    SplashScreen.hideAsync().catch(() => {});
+    if (splashHiddenRef.current) return;
+    const elapsed = Date.now() - splashShownAtRef.current;
+    const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+    setTimeout(() => {
+      if (splashHiddenRef.current) return;
+      splashHiddenRef.current = true;
+      SplashScreen.hideAsync().catch(() => {});
+    }, remaining);
   }, []);
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      {/* Android 15+(targetSdk 35 이상)는 edge-to-edge가 강제되어 이 padding 없이는
+          웹페이지 자체의 헤더/하단탭이 상태바·제스처 내비게이션 바 밑으로 들어간다. */}
+      <StatusBar style="dark" />
       {!isConnected ? (
-        <View style={[styles.offlineContainer, { paddingTop: insets.top }]}>
+        <View style={[styles.offlineContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <OfflineBanner />
           <View style={styles.offlineCenter}>
             <Text style={styles.offlineTitle}>오프라인 상태입니다</Text>
@@ -184,36 +211,40 @@ function MainScreen() {
           </View>
         </View>
       ) : (
-        <WebView
-          key={webViewKey}
-          ref={webViewRef}
-          source={{ uri: APP_URL }}
-          style={styles.webview}
-          onNavigationStateChange={handleNavigationStateChange}
-          onShouldStartLoadWithRequest={handleShouldStartLoad}
-          onFileDownload={handleFileDownload}
-          onLoadEnd={handleLoadEnd}
-          // 로그인 유지: 쿠키/로컬스토리지를 지우지 않고 그대로 재사용.
-          sharedCookiesEnabled
-          thirdPartyCookiesEnabled
-          domStorageEnabled
-          javaScriptEnabled
-          cacheEnabled
-          incognito={false}
-          // GPS: 웹 페이지의 navigator.geolocation이 동작하도록 허용
-          // (권한 다이얼로그는 ACCESS_FINE_LOCATION이 승인된 상태에서 OS가 자동으로 처리한다).
-          geolocationEnabled
-          // 카메라/갤러리 업로드(<input type="file">)는 Android WebView가 기본 제공하는
-          // 파일 선택창(onShowFileChooser)을 통해 자동으로 동작한다 - CAMERA/저장소 권한만
-          // 승인되어 있으면 별도 JS 처리가 필요 없다.
-          allowFileAccess
-          allowFileAccessFromFileURLs
-          allowUniversalAccessFromFileURLs={false}
-          mediaPlaybackRequiresUserAction={false}
-          setSupportMultipleWindows={false}
-          startInLoadingState
-          pullToRefreshEnabled
-        />
+        <>
+          <View style={{ height: insets.top, backgroundColor: '#ffffff' }} />
+          <WebView
+            key={webViewKey}
+            ref={webViewRef}
+            source={{ uri: APP_URL }}
+            style={styles.webview}
+            onNavigationStateChange={handleNavigationStateChange}
+            onShouldStartLoadWithRequest={handleShouldStartLoad}
+            onFileDownload={handleFileDownload}
+            onLoadEnd={handleLoadEnd}
+            // 로그인 유지: 쿠키/로컬스토리지를 지우지 않고 그대로 재사용.
+            sharedCookiesEnabled
+            thirdPartyCookiesEnabled
+            domStorageEnabled
+            javaScriptEnabled
+            cacheEnabled
+            incognito={false}
+            // GPS: 웹 페이지의 navigator.geolocation이 동작하도록 허용
+            // (권한 다이얼로그는 ACCESS_FINE_LOCATION이 승인된 상태에서 OS가 자동으로 처리한다).
+            geolocationEnabled
+            // 카메라/갤러리 업로드(<input type="file">)는 Android WebView가 기본 제공하는
+            // 파일 선택창(onShowFileChooser)을 통해 자동으로 동작한다 - CAMERA/저장소 권한만
+            // 승인되어 있으면 별도 JS 처리가 필요 없다.
+            allowFileAccess
+            allowFileAccessFromFileURLs
+            allowUniversalAccessFromFileURLs={false}
+            mediaPlaybackRequiresUserAction={false}
+            setSupportMultipleWindows={false}
+            startInLoadingState
+            pullToRefreshEnabled
+          />
+          <View style={{ height: insets.bottom, backgroundColor: '#ffffff' }} />
+        </>
       )}
     </View>
   );
