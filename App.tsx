@@ -16,24 +16,36 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
+import * as WebBrowser from 'expo-web-browser';
 import WebView, { type WebViewNavigation } from 'react-native-webview';
 
 // 실제 배포된 보험맵 웹을 그대로 감싼다 - 기존 웹/DB/API는 절대 건드리지 않는다.
 const APP_URL = 'https://insurance-community.vercel.app';
 const APP_HOST = 'insurance-community.vercel.app';
 
+// 구글은 자사 로그인 화면이 WebView(임베디드 브라우저) 안에서 열리는 것 자체를 차단한다
+// ("이 브라우저 또는 앱은 보안 표준을 지원하지 않습니다") - WebView 안에 그대로 붙잡아 두는
+// 방식으로는 애초에 로그인을 시작할 수조차 없다. 대신 Supabase의 authorize 요청을 감지하는
+// 즉시 WebView 밖(Custom Tab)에서 로그인을 진행시키고, 끝나면 커스텀 스킴으로 앱에 복귀시킨다.
+const OAUTH_RETURN_URL = 'boheommap://auth-callback';
+
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// 로그인(카카오/구글 OAuth)은 앱 도메인 -> Supabase -> Kakao/Google -> 다시 Supabase -> 앱 도메인
-// 순서로 리다이렉트가 이어진다. 이 중 하나라도 "외부 브라우저"로 튕겨나가면 세션 쿠키가
-// WebView가 아닌 시스템 브라우저에 저장되어 로그인이 끝나도 앱에는 반영되지 않는다.
-// 그래서 이 도메인들은 반드시 WebView 안에서 그대로 이동해야 한다.
-const OAUTH_HOST_SUFFIXES = ['.supabase.co', '.kakao.com', '.google.com', '.googleapis.com', '.googleusercontent.com'];
+const OAUTH_HOST_SUFFIXES = ['.supabase.co'];
 
 function isAppDomain(url: string): boolean {
   try {
     const { hostname } = new URL(url);
     return hostname === APP_HOST || OAUTH_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
+  } catch {
+    return false;
+  }
+}
+
+function isSupabaseAuthorizeUrl(url: string): boolean {
+  try {
+    const { hostname, pathname } = new URL(url);
+    return hostname.endsWith('.supabase.co') && pathname.startsWith('/auth/v1/authorize');
   } catch {
     return false;
   }
@@ -150,14 +162,37 @@ function MainScreen() {
     setCanGoBack(navState.canGoBack);
   }, []);
 
-  const handleShouldStartLoad = useCallback((request: { url: string }) => {
-    const { url } = request;
-    if (shouldOpenExternally(url)) {
-      openExternally(url);
-      return false;
-    }
-    return true;
+  /**
+   * Supabase → 구글 로그인 → Supabase 콜백까지 전체를 Custom Tab(WebView 밖)에서 진행시키고,
+   * boheommap://auth-callback으로 돌아오면 그 결과(세션 code)를 웹앱의 기존 /auth/callback
+   * 경로로 그대로 넘겨 WebView 안에서 로그인을 마무리한다(웹의 콜백 처리 로직은 그대로 재사용).
+   */
+  const handleGoogleAuthorize = useCallback((authorizeUrl: string) => {
+    WebBrowser.openAuthSessionAsync(authorizeUrl, OAUTH_RETURN_URL)
+      .then((result) => {
+        if (result.type === 'success' && result.url) {
+          const finalUrl = result.url.replace(OAUTH_RETURN_URL, `${APP_URL}/auth/callback`);
+          webViewRef.current?.injectJavaScript(`window.location.href = ${JSON.stringify(finalUrl)}; true;`);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const handleShouldStartLoad = useCallback(
+    (request: { url: string }) => {
+      const { url } = request;
+      if (isSupabaseAuthorizeUrl(url)) {
+        handleGoogleAuthorize(url);
+        return false;
+      }
+      if (shouldOpenExternally(url)) {
+        openExternally(url);
+        return false;
+      }
+      return true;
+    },
+    [handleGoogleAuthorize]
+  );
 
   /** Android 전용: WebView가 다운로드 가능한 파일(blob/Content-Disposition)을 만나면 호출된다. */
   const handleFileDownload = useCallback(async (event: { nativeEvent: { downloadUrl: string } }) => {
