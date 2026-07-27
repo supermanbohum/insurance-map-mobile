@@ -17,7 +17,11 @@ import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import * as WebBrowser from 'expo-web-browser';
-import WebView, { type WebViewNavigation } from 'react-native-webview';
+import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import WebView, { type WebViewNavigation, type WebViewMessageEvent } from 'react-native-webview';
+import { AnimatedSplash } from './components/AnimatedSplash';
+import { Onboarding } from './components/Onboarding';
 
 // 실제 배포된 보험맵 웹을 그대로 감싼다 - 기존 웹/DB/API는 절대 건드리지 않는다.
 const APP_URL = 'https://insurance-community.vercel.app';
@@ -30,6 +34,30 @@ const APP_HOST = 'insurance-community.vercel.app';
 const OAUTH_RETURN_URL = 'boheommap://auth-callback';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const ONBOARDING_SEEN_KEY = 'boheommap:onboarding_seen_v1';
+
+const HAPTIC_ACTIONS: Record<string, () => Promise<void>> = {
+  light: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+  medium: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+  success: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+  selection: () => Haptics.selectionAsync(),
+};
+
+/** 웹 페이지가 window.ReactNativeWebView.postMessage(JSON.stringify({type:'haptic', style}))로
+ * 보내는 신호를 받아 네이티브 햅틱을 울린다 - 로그인 성공/즐겨찾기/문의/지점등록 등
+ * 웹 쪽 버튼 클릭에 반응(웹 저장소는 그대로 유지되므로 "최근 검색 지역" 등은 이미
+ * WebView가 localStorage를 공유해 자동으로 유지된다 - 네이티브 쪽 별도 처리 불필요). */
+function handleWebMessage(event: WebViewMessageEvent) {
+  try {
+    const payload = JSON.parse(event.nativeEvent.data) as { type?: string; style?: string };
+    if (payload.type !== 'haptic') return;
+    const run = HAPTIC_ACTIONS[payload.style ?? 'light'];
+    run?.().catch(() => {});
+  } catch {
+    // 알 수 없는 형식의 메시지는 조용히 무시.
+  }
+}
 
 const OAUTH_HOST_SUFFIXES = ['.supabase.co'];
 
@@ -103,9 +131,28 @@ function MainScreen() {
   const [isConnected, setIsConnected] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
+  const [uiStage, setUiStage] = useState<'splash' | 'onboarding' | 'app'>('splash');
+  const [splashMounted, setSplashMounted] = useState(true);
   const backPressedOnceRef = useRef(false);
   const splashShownAtRef = useRef(Date.now());
   const splashHiddenRef = useRef(false);
+
+  // 네이티브 정적 스플래시(흰 화면 방지용)는 우리 애니메이션 오버레이가 화면을
+  // 덮자마자 곧바로 내려도 된다 - 이후 브랜드 연출은 AnimatedSplash가 전담한다.
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  const advanceFromSplash = useCallback(() => {
+    AsyncStorage.getItem(ONBOARDING_SEEN_KEY)
+      .then((seen) => setUiStage(seen ? 'app' : 'onboarding'))
+      .catch(() => setUiStage('app'));
+  }, []);
+
+  const handleOnboardingFinish = useCallback(() => {
+    AsyncStorage.setItem(ONBOARDING_SEEN_KEY, '1').catch(() => {});
+    setUiStage('app');
+  }, []);
 
   // 인터넷 끊김 감지.
   useEffect(() => {
@@ -127,11 +174,11 @@ function MainScreen() {
     const maxTimer = setTimeout(() => {
       if (!splashHiddenRef.current) {
         splashHiddenRef.current = true;
-        SplashScreen.hideAsync().catch(() => {});
+        advanceFromSplash();
       }
     }, MAX_SPLASH_MS);
     return () => clearTimeout(maxTimer);
-  }, []);
+  }, [advanceFromSplash]);
 
   // 하드웨어 뒤로가기: 웹뷰 히스토리가 있으면 웹뷰 뒤로, 없으면 두 번 눌러야 종료.
   useEffect(() => {
@@ -225,9 +272,9 @@ function MainScreen() {
     setTimeout(() => {
       if (splashHiddenRef.current) return;
       splashHiddenRef.current = true;
-      SplashScreen.hideAsync().catch(() => {});
+      advanceFromSplash();
     }, remaining);
-  }, []);
+  }, [advanceFromSplash]);
 
   return (
     <View style={styles.container}>
@@ -257,6 +304,7 @@ function MainScreen() {
             onShouldStartLoadWithRequest={handleShouldStartLoad}
             onFileDownload={handleFileDownload}
             onLoadEnd={handleLoadEnd}
+            onMessage={handleWebMessage}
             // 로그인 유지: 쿠키/로컬스토리지를 지우지 않고 그대로 재사용.
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
@@ -281,6 +329,16 @@ function MainScreen() {
           <View style={{ height: insets.bottom, backgroundColor: '#ffffff' }} />
         </>
       )}
+
+      {uiStage === 'onboarding' && (
+        <View style={styles.overlayFill}>
+          <Onboarding onFinish={handleOnboardingFinish} />
+        </View>
+      )}
+
+      {splashMounted && (
+        <AnimatedSplash visible={uiStage === 'splash'} onHidden={() => setSplashMounted(false)} />
+      )}
     </View>
   );
 }
@@ -289,6 +347,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#152D70',
+  },
+  overlayFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
   },
   webview: {
     flex: 1,
