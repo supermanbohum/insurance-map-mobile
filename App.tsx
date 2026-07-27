@@ -41,6 +41,7 @@ const HAPTIC_ACTIONS: Record<string, () => Promise<void>> = {
   light: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
   medium: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
   success: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+  error: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
   selection: () => Haptics.selectionAsync(),
 };
 
@@ -181,10 +182,16 @@ function MainScreen() {
   }, [advanceFromSplash]);
 
   // 하드웨어 뒤로가기: 웹뷰 히스토리가 있으면 웹뷰 뒤로, 없으면 두 번 눌러야 종료.
+  // 스플래시가 떠 있는 동안은 (아직 아무 화면도 안 보이므로) 뒤로가기를 그냥 삼킨다 -
+  // "한 번 더 누르면 종료됩니다" 토스트가 스플래시 위에 뜨는 걸 방지. 온보딩 중에는
+  // Onboarding 컴포넌트가 자체 BackHandler로 우선 처리한다(페이지 이동/건너뛰기).
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
     const handler = () => {
+      if (uiStage === 'splash') {
+        return true;
+      }
       if (canGoBack) {
         webViewRef.current?.goBack();
         return true;
@@ -203,7 +210,7 @@ function MainScreen() {
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', handler);
     return () => subscription.remove();
-  }, [canGoBack]);
+  }, [canGoBack, uiStage]);
 
   const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
     setCanGoBack(navState.canGoBack);

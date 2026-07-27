@@ -1,8 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  BackHandler,
   Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -56,6 +58,27 @@ export function Onboarding({ onFinish }: { onFinish: () => void }) {
     Haptics.selectionAsync().catch(() => {});
     onFinish();
   };
+
+  const handleBack = () => {
+    Haptics.selectionAsync().catch(() => {});
+    if (activeIndex > 0) {
+      scrollRef.current?.scrollTo({ x: SCREEN_WIDTH * (activeIndex - 1), animated: true });
+      return;
+    }
+    // 첫 페이지에서 뒤로가기 - 앱을 바로 종료시키기보다 온보딩을 건너뛰고 본 화면으로 보낸다.
+    onFinish();
+  };
+
+  // 온보딩이 떠 있는 동안은 이 핸들러가 App.tsx의 기본 뒤로가기 처리보다 먼저 잡는다
+  // (React Native BackHandler는 나중에 등록된 리스너를 먼저 호출한다).
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [activeIndex]);
 
   return (
     <View style={styles.container}>
