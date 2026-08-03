@@ -24,8 +24,8 @@ import { AnimatedSplash } from './components/AnimatedSplash';
 import { Onboarding } from './components/Onboarding';
 
 // 실제 배포된 보험맵 웹을 그대로 감싼다 - 기존 웹/DB/API는 절대 건드리지 않는다.
-const APP_URL = 'https://insurance-community.vercel.app';
-const APP_HOST = 'insurance-community.vercel.app';
+const APP_URL = 'https://bohummap.com';
+const APP_HOST = 'bohummap.com';
 
 // 구글은 자사 로그인 화면이 WebView(임베디드 브라우저) 안에서 열리는 것 자체를 차단한다
 // ("이 브라우저 또는 앱은 보안 표준을 지원하지 않습니다") - WebView 안에 그대로 붙잡아 두는
