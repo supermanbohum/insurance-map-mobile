@@ -30,6 +30,7 @@ import { OfflineScreen } from './src/components/OfflineScreen';
 import { AppLockScreen } from './src/components/AppLockScreen';
 import { QrScannerScreen } from './src/components/QrScannerScreen';
 import { LoadingBar } from './src/components/LoadingBar';
+import { ErrorScreen } from './src/components/ErrorScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -78,6 +79,7 @@ function MainScreen() {
   const [webViewKey, setWebViewKey] = useState(0);
   const [loadProgress, setLoadProgress] = useState(0);
   const [webLoading, setWebLoading] = useState(true);
+  const [webError, setWebError] = useState(false);
   const [uiStage, setUiStage] = useState<'splash' | 'onboarding' | 'app'>('splash');
   const [splashMounted, setSplashMounted] = useState(true);
   const backPressedOnceRef = useRef(false);
@@ -241,6 +243,19 @@ function MainScreen() {
     setWebViewKey((k) => k + 1);
   }, []);
 
+  // WebView 로드 실패 시 에러 화면을 띄우고, 재시도로 WebView를 새로 마운트한다.
+  const handleWebError = useCallback(() => {
+    setWebError(true);
+    setWebLoading(false);
+  }, []);
+
+  const retryWeb = useCallback(() => {
+    setWebError(false);
+    setWebLoading(true);
+    setLoadProgress(0);
+    setWebViewKey((k) => k + 1);
+  }, []);
+
   const handleLoadStart = useCallback(() => {
     setWebLoading(true);
     setLoadProgress(0);
@@ -295,6 +310,9 @@ function MainScreen() {
             onLoadStart={handleLoadStart}
             onLoadProgress={handleLoadProgress}
             onLoadEnd={handleLoadEnd}
+            onError={handleWebError}
+            onRenderProcessGone={retryWeb}
+            onContentProcessDidTerminate={retryWeb}
             onMessage={handleWebMessage}
             injectedJavaScriptBeforeContentLoaded={BRIDGE_SETUP_JS}
             // 로그인 유지: 쿠키/로컬스토리지를 지우지 않고 재사용.
@@ -336,6 +354,15 @@ function MainScreen() {
       {/* QR 스캐너: 웹 요청 시 카메라 오버레이를 띄운다. */}
       {qrReqId !== null && (
         <QrScannerScreen onResult={handleQrResult} onCancel={handleQrCancel} />
+      )}
+
+      {/* WebView 로드 실패: 온라인인데 페이지를 못 불러온 경우. */}
+      {isConnected && webError && (
+        <ErrorScreen
+          title="페이지를 불러오지 못했습니다"
+          message={'일시적인 오류일 수 있어요.\n잠시 후 다시 시도해주세요.'}
+          onRetry={retryWeb}
+        />
       )}
     </View>
   );
