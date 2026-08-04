@@ -29,6 +29,7 @@ export type Capability =
 export type WebToApp =
   | { v?: number; type: 'haptic'; style?: HapticStyle }
   | { v?: number; type: 'toast'; message: string }
+  | { v?: number; type: 'share'; url?: string; title?: string; message?: string }
   | { v?: number; type: 'log'; level: 'info' | 'warn' | 'error'; message: string };
 
 /** 앱 → 웹 (현재 구현분). */

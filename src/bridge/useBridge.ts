@@ -17,6 +17,7 @@ import { APP_VERSION } from '../config/constants';
 import { logger } from '../utils/logger';
 import { APP_CAPABILITIES } from './capabilities';
 import { runHaptic, showToast } from './handlers';
+import { shareContent } from '../features/share/share';
 import { PROTOCOL_VERSION, parseWebMessage, type AppToWeb } from './protocol';
 
 export function useBridge(webViewRef: RefObject<WebView | null>) {
@@ -53,6 +54,13 @@ export function useBridge(webViewRef: RefObject<WebView | null>) {
         break;
       case 'toast':
         if (typeof msg.message === 'string') showToast(msg.message);
+        break;
+      case 'share':
+        shareContent({
+          url: typeof msg.url === 'string' ? msg.url : undefined,
+          title: typeof msg.title === 'string' ? msg.title : undefined,
+          message: typeof msg.message === 'string' ? msg.message : undefined,
+        });
         break;
       case 'log':
         if (typeof msg.message === 'string') {
