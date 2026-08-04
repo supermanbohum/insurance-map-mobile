@@ -18,9 +18,16 @@ import { logger } from '../utils/logger';
 import { APP_CAPABILITIES } from './capabilities';
 import { runHaptic, showToast } from './handlers';
 import { shareContent } from '../features/share/share';
+import { authenticate } from '../features/biometric/biometric';
 import { PROTOCOL_VERSION, parseWebMessage, type AppToWeb } from './protocol';
 
-export function useBridge(webViewRef: RefObject<WebView | null>) {
+export interface BridgeOptions {
+  /** 웹이 앱 잠금 on/off를 요청했을 때. */
+  onSetBiometricLock?: (enabled: boolean) => void;
+}
+
+export function useBridge(webViewRef: RefObject<WebView | null>, options: BridgeOptions = {}) {
+  const { onSetBiometricLock } = options;
   /** 앱 → 웹 이벤트 주입. */
   const emitToWeb = useCallback(
     (msg: AppToWeb) => {
@@ -62,6 +69,17 @@ export function useBridge(webViewRef: RefObject<WebView | null>) {
           message: typeof msg.message === 'string' ? msg.message : undefined,
         });
         break;
+      case 'request-biometric': {
+        const reqId = typeof msg.reqId === 'string' ? msg.reqId : '';
+        const reason = typeof msg.reason === 'string' ? msg.reason : '본인 확인';
+        authenticate(reason).then((res) => {
+          emitToWeb({ v: PROTOCOL_VERSION, type: 'biometric-result', reqId, ok: res.ok, error: res.error });
+        });
+        break;
+      }
+      case 'set-biometric-lock':
+        if (typeof msg.enabled === 'boolean') onSetBiometricLock?.(msg.enabled);
+        break;
       case 'log':
         if (typeof msg.message === 'string') {
           const level = msg.level === 'warn' || msg.level === 'error' ? msg.level : 'info';
@@ -72,7 +90,7 @@ export function useBridge(webViewRef: RefObject<WebView | null>) {
         // 알 수 없는 type은 조용히 무시(하위/상위 호환).
         break;
     }
-  }, []);
+  }, [emitToWeb, onSetBiometricLock]);
 
   return { emitToWeb, sendReady, handleWebMessage };
 }

@@ -30,12 +30,15 @@ export type WebToApp =
   | { v?: number; type: 'haptic'; style?: HapticStyle }
   | { v?: number; type: 'toast'; message: string }
   | { v?: number; type: 'share'; url?: string; title?: string; message?: string }
+  | { v?: number; type: 'request-biometric'; reqId?: string; reason?: string }
+  | { v?: number; type: 'set-biometric-lock'; enabled: boolean }
   | { v?: number; type: 'log'; level: 'info' | 'warn' | 'error'; message: string };
 
 /** 앱 → 웹 (현재 구현분). */
 export type AppToWeb =
   | { v: number; type: 'ready'; platform: 'ios' | 'android'; appVersion: string; capabilities: Capability[] }
   | { v: number; type: 'deeplink'; path: string; source: 'notification' | 'link' | 'cold-start' }
+  | { v: number; type: 'biometric-result'; reqId: string; ok: boolean; error?: string }
   | { v: number; type: 'app-state'; state: 'active' | 'background' | 'inactive' }
   | { v: number; type: 'network'; online: boolean }
   | { v: number; type: 'back-pressed' };

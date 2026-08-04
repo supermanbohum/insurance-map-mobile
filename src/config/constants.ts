@@ -29,6 +29,7 @@ export const APP_VERSION = '1.0.0';
 /** AsyncStorage 키 네임스페이스. */
 export const StorageKeys = {
   onboardingSeen: 'boheommap:onboarding_seen_v1',
+  appLockEnabled: 'boheommap:app_lock_enabled_v1',
 } as const;
 
 /** 스플래시 최소/최대 노출 시간(ms) - 깜빡임 방지 + 먹통 방지. */

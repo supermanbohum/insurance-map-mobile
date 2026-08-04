@@ -14,6 +14,7 @@ import { PROTOCOL_VERSION } from './src/bridge/protocol';
 import { useBridge } from './src/bridge/useBridge';
 import { useDeepLinks } from './src/features/deeplink/useDeepLinks';
 import type { ResolvedDeepLink } from './src/features/deeplink/resolve';
+import { useAppLock } from './src/features/biometric/useAppLock';
 import { runGoogleAuthSession } from './src/features/auth/oauth';
 import { downloadToGallery } from './src/features/media/download';
 import {
@@ -26,6 +27,7 @@ import { onboarding } from './src/utils/storage';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { Onboarding } from './src/components/Onboarding';
 import { OfflineScreen } from './src/components/OfflineScreen';
+import { AppLockScreen } from './src/components/AppLockScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -43,7 +45,12 @@ export default function App() {
 function MainScreen() {
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
-  const { handleWebMessage, sendReady, emitToWeb } = useBridge(webViewRef);
+  const { locked, unlock, setLockEnabled } = useAppLock();
+  const { handleWebMessage, sendReady, emitToWeb } = useBridge(webViewRef, {
+    onSetBiometricLock: (enabled) => {
+      setLockEnabled(enabled);
+    },
+  });
 
   const [isConnected, setIsConnected] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -286,6 +293,9 @@ function MainScreen() {
       {splashMounted && (
         <AnimatedSplash visible={uiStage === 'splash'} onHidden={() => setSplashMounted(false)} />
       )}
+
+      {/* 앱 잠금: 켜져 있으면 모든 화면 위를 덮는다(생체인증 해제 전까지). */}
+      {locked && <AppLockScreen onUnlock={unlock} />}
     </View>
   );
 }
