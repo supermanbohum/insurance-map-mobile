@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../config/theme';
+import { haptics } from '../utils/haptics';
 
 /**
  * 네이티브 QR 스캐너 오버레이. 웹의 open-qr-scanner 요청으로 열리고,
@@ -29,6 +30,7 @@ export function QrScannerScreen({
   const handleScanned = (result: BarcodeScanningResult) => {
     if (handledRef.current || !result.data) return;
     handledRef.current = true;
+    haptics.success();
     onResult(result.data);
   };
 
@@ -60,7 +62,10 @@ export function QrScannerScreen({
 
       <TouchableOpacity
         style={[styles.close, { top: insets.top + 12 }]}
-        onPress={onCancel}
+        onPress={() => {
+          haptics.selection();
+          onCancel();
+        }}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
         <Text style={styles.closeText}>닫기</Text>

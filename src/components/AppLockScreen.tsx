@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '../config/theme';
+import { haptics } from '../utils/haptics';
 import type { AuthResult } from '../features/biometric/biometric';
 
 /**
@@ -23,7 +24,10 @@ export function AppLockScreen({ onUnlock }: { onUnlock: () => Promise<AuthResult
       <Text style={styles.subtitle}>생체인증으로 잠금을 해제하세요.</Text>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => onUnlock().catch(() => {})}
+        onPress={() => {
+          haptics.light();
+          onUnlock().catch(() => {});
+        }}
         activeOpacity={0.85}
       >
         <Text style={styles.buttonText}>잠금 해제</Text>

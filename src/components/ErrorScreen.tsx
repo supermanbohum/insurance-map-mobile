@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../config/theme';
+import { haptics } from '../utils/haptics';
 
 /**
  * 범용 에러/재시도 오버레이 - WebView 로드 실패 등에 사용.
@@ -23,7 +24,14 @@ export function ErrorScreen({
         <Text style={styles.emoji}>⚠️</Text>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{message}</Text>
-        <TouchableOpacity style={styles.retry} onPress={onRetry} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.retry}
+          onPress={() => {
+            haptics.light();
+            onRetry();
+          }}
+          activeOpacity={0.85}
+        >
           <Text style={styles.retryText}>다시 시도</Text>
         </TouchableOpacity>
       </View>

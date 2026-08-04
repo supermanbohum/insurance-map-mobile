@@ -23,6 +23,7 @@ import {
   shouldOpenExternally,
 } from './src/webview/navigation';
 import { showToast } from './src/bridge/handlers';
+import { haptics } from './src/utils/haptics';
 import { onboarding } from './src/utils/storage';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { Onboarding } from './src/components/Onboarding';
@@ -174,6 +175,7 @@ function MainScreen() {
         return true;
       }
       backPressedOnceRef.current = true;
+      haptics.warning();
       showToast('한 번 더 누르면 종료됩니다');
       setTimeout(() => {
         backPressedOnceRef.current = false;
