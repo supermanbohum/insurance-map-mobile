@@ -29,6 +29,7 @@ import { Onboarding } from './src/components/Onboarding';
 import { OfflineScreen } from './src/components/OfflineScreen';
 import { AppLockScreen } from './src/components/AppLockScreen';
 import { QrScannerScreen } from './src/components/QrScannerScreen';
+import { LoadingBar } from './src/components/LoadingBar';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -75,6 +76,8 @@ function MainScreen() {
   const [isConnected, setIsConnected] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [webLoading, setWebLoading] = useState(true);
   const [uiStage, setUiStage] = useState<'splash' | 'onboarding' | 'app'>('splash');
   const [splashMounted, setSplashMounted] = useState(true);
   const backPressedOnceRef = useRef(false);
@@ -238,8 +241,18 @@ function MainScreen() {
     setWebViewKey((k) => k + 1);
   }, []);
 
+  const handleLoadStart = useCallback(() => {
+    setWebLoading(true);
+    setLoadProgress(0);
+  }, []);
+
+  const handleLoadProgress = useCallback((event: { nativeEvent: { progress: number } }) => {
+    setLoadProgress(event.nativeEvent.progress);
+  }, []);
+
   const handleLoadEnd = useCallback(() => {
     hasLoadedOnceRef.current = true;
+    setWebLoading(false);
 
     // 브릿지 핸드셰이크: 웹이 "앱 안"임을 인지하고 capabilities에 맞춰 UI를 전환하게 한다.
     sendReady();
@@ -279,6 +292,8 @@ function MainScreen() {
             onNavigationStateChange={handleNavigationStateChange}
             onShouldStartLoadWithRequest={handleShouldStartLoad}
             onFileDownload={handleFileDownload}
+            onLoadStart={handleLoadStart}
+            onLoadProgress={handleLoadProgress}
             onLoadEnd={handleLoadEnd}
             onMessage={handleWebMessage}
             injectedJavaScriptBeforeContentLoaded={BRIDGE_SETUP_JS}
@@ -301,6 +316,7 @@ function MainScreen() {
             pullToRefreshEnabled
           />
           <View style={{ height: insets.bottom, backgroundColor: colors.bg }} />
+          <LoadingBar progress={loadProgress} visible={webLoading && loadProgress < 1} />
         </>
       )}
 
