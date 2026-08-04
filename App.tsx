@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, BackHandler, Platform, StyleSheet, View } from 'react-native';
+import { Alert, BackHandler, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
@@ -80,6 +80,7 @@ function MainScreen() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [webLoading, setWebLoading] = useState(true);
   const [webError, setWebError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [uiStage, setUiStage] = useState<'splash' | 'onboarding' | 'app'>('splash');
   const [splashMounted, setSplashMounted] = useState(true);
   const backPressedOnceRef = useRef(false);
@@ -243,10 +244,17 @@ function MainScreen() {
     setWebViewKey((k) => k + 1);
   }, []);
 
+  // 당겨서 새로고침(Android). iOS는 WebView pullToRefreshEnabled가 네이티브로 처리.
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    webViewRef.current?.reload();
+  }, []);
+
   // WebView 로드 실패 시 에러 화면을 띄우고, 재시도로 WebView를 새로 마운트한다.
   const handleWebError = useCallback(() => {
     setWebError(true);
     setWebLoading(false);
+    setRefreshing(false);
   }, []);
 
   const retryWeb = useCallback(() => {
@@ -268,6 +276,7 @@ function MainScreen() {
   const handleLoadEnd = useCallback(() => {
     hasLoadedOnceRef.current = true;
     setWebLoading(false);
+    setRefreshing(false);
 
     // 브릿지 핸드셰이크: 웹이 "앱 안"임을 인지하고 capabilities에 맞춰 UI를 전환하게 한다.
     sendReady();
@@ -289,6 +298,44 @@ function MainScreen() {
     }, remaining);
   }, [advanceFromSplash, sendReady, applyDeepLink]);
 
+  const webViewElement = (
+    <WebView
+      key={webViewKey}
+      ref={webViewRef}
+      source={{ uri: APP_URL }}
+      style={styles.webview}
+      onNavigationStateChange={handleNavigationStateChange}
+      onShouldStartLoadWithRequest={handleShouldStartLoad}
+      onFileDownload={handleFileDownload}
+      onLoadStart={handleLoadStart}
+      onLoadProgress={handleLoadProgress}
+      onLoadEnd={handleLoadEnd}
+      onError={handleWebError}
+      onRenderProcessGone={retryWeb}
+      onContentProcessDidTerminate={retryWeb}
+      onMessage={handleWebMessage}
+      injectedJavaScriptBeforeContentLoaded={BRIDGE_SETUP_JS}
+      // 로그인 유지: 쿠키/로컬스토리지를 지우지 않고 재사용.
+      sharedCookiesEnabled
+      thirdPartyCookiesEnabled
+      domStorageEnabled
+      javaScriptEnabled
+      cacheEnabled
+      incognito={false}
+      // GPS: 웹의 navigator.geolocation 동작 허용(권한은 OS가 처리).
+      geolocationEnabled
+      // 카메라/갤러리 업로드(<input type="file">)는 WebView 기본 파일 선택창으로 동작.
+      allowFileAccess
+      allowFileAccessFromFileURLs
+      allowUniversalAccessFromFileURLs={false}
+      mediaPlaybackRequiresUserAction={false}
+      setSupportMultipleWindows={false}
+      startInLoadingState
+      // iOS 당겨서 새로고침(네이티브). Android는 아래 RefreshControl로 처리.
+      pullToRefreshEnabled
+    />
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -299,40 +346,25 @@ function MainScreen() {
           {/* Android 15+(edge-to-edge 강제)에서 웹 헤더/하단탭이 시스템 바 밑으로
               들어가지 않도록 상/하단 inset을 흰 배경으로 채운다. */}
           <View style={{ height: insets.top, backgroundColor: colors.bg }} />
-          <WebView
-            key={webViewKey}
-            ref={webViewRef}
-            source={{ uri: APP_URL }}
-            style={styles.webview}
-            onNavigationStateChange={handleNavigationStateChange}
-            onShouldStartLoadWithRequest={handleShouldStartLoad}
-            onFileDownload={handleFileDownload}
-            onLoadStart={handleLoadStart}
-            onLoadProgress={handleLoadProgress}
-            onLoadEnd={handleLoadEnd}
-            onError={handleWebError}
-            onRenderProcessGone={retryWeb}
-            onContentProcessDidTerminate={retryWeb}
-            onMessage={handleWebMessage}
-            injectedJavaScriptBeforeContentLoaded={BRIDGE_SETUP_JS}
-            // 로그인 유지: 쿠키/로컬스토리지를 지우지 않고 재사용.
-            sharedCookiesEnabled
-            thirdPartyCookiesEnabled
-            domStorageEnabled
-            javaScriptEnabled
-            cacheEnabled
-            incognito={false}
-            // GPS: 웹의 navigator.geolocation 동작 허용(권한은 OS가 처리).
-            geolocationEnabled
-            // 카메라/갤러리 업로드(<input type="file">)는 WebView 기본 파일 선택창으로 동작.
-            allowFileAccess
-            allowFileAccessFromFileURLs
-            allowUniversalAccessFromFileURLs={false}
-            mediaPlaybackRequiresUserAction={false}
-            setSupportMultipleWindows={false}
-            startInLoadingState
-            pullToRefreshEnabled
-          />
+          {Platform.OS === 'android' ? (
+            <ScrollView
+              style={styles.webview}
+              contentContainerStyle={styles.webviewFill}
+              nestedScrollEnabled
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  colors={[colors.primary]}
+                  tintColor={colors.primary}
+                />
+              }
+            >
+              {webViewElement}
+            </ScrollView>
+          ) : (
+            webViewElement
+          )}
           <View style={{ height: insets.bottom, backgroundColor: colors.bg }} />
           <LoadingBar progress={loadProgress} visible={webLoading && loadProgress < 1} />
         </>
@@ -384,5 +416,9 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  // Android RefreshControl용 ScrollView 콘텐츠가 뷰포트를 채워 WebView가 내부 스크롤하도록.
+  webviewFill: {
+    flex: 1,
   },
 });
