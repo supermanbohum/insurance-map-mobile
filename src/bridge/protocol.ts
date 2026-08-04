@@ -34,6 +34,7 @@ export type WebToApp =
 /** 앱 → 웹 (현재 구현분). */
 export type AppToWeb =
   | { v: number; type: 'ready'; platform: 'ios' | 'android'; appVersion: string; capabilities: Capability[] }
+  | { v: number; type: 'deeplink'; path: string; source: 'notification' | 'link' | 'cold-start' }
   | { v: number; type: 'app-state'; state: 'active' | 'background' | 'inactive' }
   | { v: number; type: 'network'; online: boolean }
   | { v: number; type: 'back-pressed' };

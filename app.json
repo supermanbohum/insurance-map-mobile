@@ -10,11 +10,25 @@
     "scheme": "boheommap",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bohummap.app"
+      "bundleIdentifier": "com.bohummap.app",
+      "associatedDomains": ["applinks:bohummap.com"]
     },
     "android": {
       "package": "com.bohummap.app",
-      "versionCode": 2,
+      "versionCode": 3,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "bohummap.com"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#152D70",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -54,7 +68,9 @@
           "android": {
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
-            "minSdkVersion": 24
+            "minSdkVersion": 24,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ],

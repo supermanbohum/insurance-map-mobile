@@ -10,7 +10,10 @@ import WebView, { type WebViewNavigation } from 'react-native-webview';
 import { APP_URL, MAX_SPLASH_MS, MIN_SPLASH_MS } from './src/config/constants';
 import { colors } from './src/config/theme';
 import { buildBridgeSetupScript } from './src/bridge/injected';
+import { PROTOCOL_VERSION } from './src/bridge/protocol';
 import { useBridge } from './src/bridge/useBridge';
+import { useDeepLinks } from './src/features/deeplink/useDeepLinks';
+import type { ResolvedDeepLink } from './src/features/deeplink/resolve';
 import { runGoogleAuthSession } from './src/features/auth/oauth';
 import { downloadToGallery } from './src/features/media/download';
 import {
@@ -40,7 +43,7 @@ export default function App() {
 function MainScreen() {
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
-  const { handleWebMessage, sendReady } = useBridge(webViewRef);
+  const { handleWebMessage, sendReady, emitToWeb } = useBridge(webViewRef);
 
   const [isConnected, setIsConnected] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -50,6 +53,34 @@ function MainScreen() {
   const backPressedOnceRef = useRef(false);
   const splashShownAtRef = useRef(Date.now());
   const splashHiddenRef = useRef(false);
+  const hasLoadedOnceRef = useRef(false);
+  const pendingDeepLinkRef = useRef<ResolvedDeepLink | null>(null);
+
+  // 딥링크(커스텀 스킴/유니버설 링크)를 받으면 해당 웹 경로로 WebView를 이동시키고,
+  // 웹에도 알린다(웹이 SPA 라우팅으로 반응할 수 있도록 - 없어도 이동은 보장됨).
+  const applyDeepLink = useCallback(
+    (resolved: ResolvedDeepLink, source: 'link' | 'cold-start') => {
+      webViewRef.current?.injectJavaScript(
+        `window.location.href = ${JSON.stringify(resolved.webUrl)}; true;`
+      );
+      emitToWeb({ v: PROTOCOL_VERSION, type: 'deeplink', path: resolved.path, source });
+    },
+    [emitToWeb]
+  );
+
+  // WebView가 아직 첫 로드 전이면(콜드 스타트) 대기시켰다가 onLoadEnd에서 적용한다.
+  const handleDeepLink = useCallback(
+    (resolved: ResolvedDeepLink) => {
+      if (hasLoadedOnceRef.current) {
+        applyDeepLink(resolved, 'link');
+      } else {
+        pendingDeepLinkRef.current = resolved;
+      }
+    },
+    [applyDeepLink]
+  );
+
+  useDeepLinks(handleDeepLink);
 
   // 네이티브 정적 스플래시(흰 화면 방지)는 애니메이션 오버레이가 화면을 덮자마자 내린다.
   useEffect(() => {
@@ -181,8 +212,17 @@ function MainScreen() {
   }, []);
 
   const handleLoadEnd = useCallback(() => {
+    hasLoadedOnceRef.current = true;
+
     // 브릿지 핸드셰이크: 웹이 "앱 안"임을 인지하고 capabilities에 맞춰 UI를 전환하게 한다.
     sendReady();
+
+    // 콜드 스타트 딥링크: 첫 로드가 끝난 뒤 대기 중인 링크를 적용한다.
+    if (pendingDeepLinkRef.current) {
+      const pending = pendingDeepLinkRef.current;
+      pendingDeepLinkRef.current = null;
+      applyDeepLink(pending, 'cold-start');
+    }
 
     if (splashHiddenRef.current) return;
     const elapsed = Date.now() - splashShownAtRef.current;
@@ -192,7 +232,7 @@ function MainScreen() {
       splashHiddenRef.current = true;
       advanceFromSplash();
     }, remaining);
-  }, [advanceFromSplash, sendReady]);
+  }, [advanceFromSplash, sendReady, applyDeepLink]);
 
   return (
     <View style={styles.container}>

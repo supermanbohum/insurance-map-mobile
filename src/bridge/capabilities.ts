@@ -7,4 +7,4 @@
  */
 import type { Capability } from './protocol';
 
-export const APP_CAPABILITIES: Capability[] = ['haptic'];
+export const APP_CAPABILITIES: Capability[] = ['haptic', 'deeplink'];
