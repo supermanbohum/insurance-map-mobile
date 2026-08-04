@@ -93,6 +93,12 @@
         {
           "faceIDPermission": "보험맵 앱 잠금을 해제하기 위해 Face ID를 사용합니다."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "명함/프로필 QR 코드를 스캔하기 위해 카메라를 사용합니다."
+        }
       ]
     ],
     "extra": {

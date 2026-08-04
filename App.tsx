@@ -28,6 +28,7 @@ import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { Onboarding } from './src/components/Onboarding';
 import { OfflineScreen } from './src/components/OfflineScreen';
 import { AppLockScreen } from './src/components/AppLockScreen';
+import { QrScannerScreen } from './src/components/QrScannerScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -46,11 +47,30 @@ function MainScreen() {
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const { locked, unlock, setLockEnabled } = useAppLock();
+  const [qrReqId, setQrReqId] = useState<string | null>(null);
   const { handleWebMessage, sendReady, emitToWeb } = useBridge(webViewRef, {
     onSetBiometricLock: (enabled) => {
       setLockEnabled(enabled);
     },
+    onOpenQrScanner: (reqId) => setQrReqId(reqId),
   });
+
+  const handleQrResult = useCallback(
+    (value: string) => {
+      if (qrReqId !== null) {
+        emitToWeb({ v: PROTOCOL_VERSION, type: 'qr-result', reqId: qrReqId, value });
+      }
+      setQrReqId(null);
+    },
+    [qrReqId, emitToWeb]
+  );
+
+  const handleQrCancel = useCallback(() => {
+    if (qrReqId !== null) {
+      emitToWeb({ v: PROTOCOL_VERSION, type: 'qr-cancelled', reqId: qrReqId });
+    }
+    setQrReqId(null);
+  }, [qrReqId, emitToWeb]);
 
   const [isConnected, setIsConnected] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -296,6 +316,11 @@ function MainScreen() {
 
       {/* 앱 잠금: 켜져 있으면 모든 화면 위를 덮는다(생체인증 해제 전까지). */}
       {locked && <AppLockScreen onUnlock={unlock} />}
+
+      {/* QR 스캐너: 웹 요청 시 카메라 오버레이를 띄운다. */}
+      {qrReqId !== null && (
+        <QrScannerScreen onResult={handleQrResult} onCancel={handleQrCancel} />
+      )}
     </View>
   );
 }

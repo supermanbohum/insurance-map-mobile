@@ -24,10 +24,12 @@ import { PROTOCOL_VERSION, parseWebMessage, type AppToWeb } from './protocol';
 export interface BridgeOptions {
   /** 웹이 앱 잠금 on/off를 요청했을 때. */
   onSetBiometricLock?: (enabled: boolean) => void;
+  /** 웹이 QR 스캐너 열기를 요청했을 때(reqId로 결과를 짝지음). */
+  onOpenQrScanner?: (reqId: string) => void;
 }
 
 export function useBridge(webViewRef: RefObject<WebView | null>, options: BridgeOptions = {}) {
-  const { onSetBiometricLock } = options;
+  const { onSetBiometricLock, onOpenQrScanner } = options;
   /** 앱 → 웹 이벤트 주입. */
   const emitToWeb = useCallback(
     (msg: AppToWeb) => {
@@ -80,6 +82,9 @@ export function useBridge(webViewRef: RefObject<WebView | null>, options: Bridge
       case 'set-biometric-lock':
         if (typeof msg.enabled === 'boolean') onSetBiometricLock?.(msg.enabled);
         break;
+      case 'open-qr-scanner':
+        onOpenQrScanner?.(typeof msg.reqId === 'string' ? msg.reqId : '');
+        break;
       case 'log':
         if (typeof msg.message === 'string') {
           const level = msg.level === 'warn' || msg.level === 'error' ? msg.level : 'info';
@@ -90,7 +95,7 @@ export function useBridge(webViewRef: RefObject<WebView | null>, options: Bridge
         // 알 수 없는 type은 조용히 무시(하위/상위 호환).
         break;
     }
-  }, [emitToWeb, onSetBiometricLock]);
+  }, [emitToWeb, onSetBiometricLock, onOpenQrScanner]);
 
   return { emitToWeb, sendReady, handleWebMessage };
 }
