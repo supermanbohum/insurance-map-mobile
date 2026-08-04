@@ -1,9 +1,9 @@
 /**
  * 웹 → 앱 메시지의 네이티브 처리(부수효과). 각 핸들러는 실패해도 앱을 죽이지 않는다.
  */
-import { Platform, ToastAndroid } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { HapticStyle } from './protocol';
+import { toast } from '../utils/toast';
 
 const HAPTIC_ACTIONS: Record<HapticStyle, () => Promise<void>> = {
   light: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
@@ -19,9 +19,7 @@ export function runHaptic(style?: string): void {
   run().catch(() => {});
 }
 
-/** Android 토스트(iOS는 무시 - 별도 UI는 추후 도입). */
+/** 인앱 토스트(iOS/Android 통일). 실제 렌더링은 ToastHost가 담당. */
 export function showToast(message: string): void {
-  if (Platform.OS === 'android') {
-    ToastAndroid.show(message, ToastAndroid.SHORT);
-  }
+  toast.show(message);
 }

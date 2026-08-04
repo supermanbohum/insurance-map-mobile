@@ -31,6 +31,7 @@ import { AppLockScreen } from './src/components/AppLockScreen';
 import { QrScannerScreen } from './src/components/QrScannerScreen';
 import { LoadingBar } from './src/components/LoadingBar';
 import { ErrorScreen } from './src/components/ErrorScreen';
+import { ToastHost } from './src/components/ToastHost';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -396,6 +397,9 @@ function MainScreen() {
           onRetry={retryWeb}
         />
       )}
+
+      {/* 인앱 토스트(iOS/Android 통일) - 항상 최상단. */}
+      <ToastHost />
     </View>
   );
 }
