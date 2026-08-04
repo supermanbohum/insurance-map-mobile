@@ -279,3 +279,29 @@ SELECT 정책의 일반적인 모양: "공개 상태(approved/visible)인 것은
 | 0043 | branch_registration_drafts | 지점 임시저장+대기중수정+정확한이력 |
 | 0044 | planner_trust_update_queue | 설계사 즉시반영/재승인 분리 |
 | 0045 | planner_contact_view_notifications | 설계사 열람 알림 |
+
+---
+
+## 부록 A. 모바일 앱 현재 상태 (앱팀 → 웹팀 역방향 동기화)
+
+> 갱신: 2026-08-04. 위 인수인계(웹→앱) 원문은 보존하고, 아래는 앱 구현 현황을 웹팀에 알리는 부록이다.
+
+**아키텍처**: Expo SDK 57 + RN 0.86 하이브리드. `bohummap.com`을 WebView로 감싸고 네이티브 기능을 브릿지로 얹음. 웹 코드/DB/RPC는 앱이 수정하지 않음.
+
+**웹↔앱 브릿지(`window.__boheom`)**: 앱이 `injectedJavaScriptBeforeContentLoaded`로 설치. 웹은 `__boheom.send({type,...})`로 앱 호출, `__boheom.on(cb)` 또는 `addEventListener('boheom:native')`로 앱 이벤트 수신. 규격은 [BRIDGE_PROTOCOL.md](BRIDGE_PROTOCOL.md).
+
+**앱이 광고하는 capabilities**(ready 핸드셰이크로 전달): `haptic, deeplink, share, biometric, qr-scan, push, badge`.
+
+**웹팀이 구현/확인할 것**:
+1. `ready` 수신 → 앱 모드 전환(앱 전용 UI, 다운로드 배너 숨김 등)
+2. **`push-token` 수신 → `register_push_token` RPC 저장** (웹 "준비됨"으로 확인됨). 앱은 DB/API 직접 호출 안 함.
+3. `deeplink` 수신 → 프론트 라우팅(선택; 앱이 location 이동은 이미 보장)
+4. 공유/QR 등은 폴백 포함 헬퍼로 감싸기(앱이면 브릿지, 아니면 웹 API)
+5. **`.well-known/assetlinks.json` + `apple-app-site-association` 정적 호스팅**(유니버설/앱 링크)
+6. **`/privacy` 개인정보처리방침 페이지**(Play 출시 필수)
+
+**딥링크 경로 계약**: 웹 URL 구조와 1:1. `/designer/{id}`, `/branch/{id}`, `/ga/{id}`, `/chat/{roomId}`, `/recruiting/{id}`, `/notice/{id}`. 웹 URL 변경 시 공유 필요.
+
+**푸시 페이로드**: 서버→Expo Push의 `data`에 `{ path: '/chat/{id}', ... }` 포함 → 앱이 알림 탭 시 해당 경로로 딥링크.
+
+**출시 상태**: Play 출시 준비는 [PLAY_STORE_RELEASE.md](PLAY_STORE_RELEASE.md) 참조. 코드/설정 완료, 남은 블로커는 Privacy Policy·Data Safety·리스팅 에셋·FCM 키.
