@@ -19,6 +19,7 @@ import { APP_CAPABILITIES } from './capabilities';
 import { runHaptic, showToast } from './handlers';
 import { shareContent } from '../features/share/share';
 import { authenticate } from '../features/biometric/biometric';
+import { setBadgeCount } from '../features/push/push';
 import { PROTOCOL_VERSION, parseWebMessage, type AppToWeb } from './protocol';
 
 export interface BridgeOptions {
@@ -84,6 +85,9 @@ export function useBridge(webViewRef: RefObject<WebView | null>, options: Bridge
         break;
       case 'open-qr-scanner':
         onOpenQrScanner?.(typeof msg.reqId === 'string' ? msg.reqId : '');
+        break;
+      case 'set-badge':
+        if (typeof msg.count === 'number') setBadgeCount(msg.count);
         break;
       case 'log':
         if (typeof msg.message === 'string') {

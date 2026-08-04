@@ -26,6 +26,9 @@ export const EXTERNAL_SCHEMES = ['tel:', 'sms:', 'mailto:', 'kakaotalk:', 'kakao
  */
 export const APP_VERSION = '1.0.0';
 
+/** EAS 프로젝트 ID - Expo Push Token 발급에 필요(app.json extra.eas.projectId와 동일). */
+export const EAS_PROJECT_ID = 'c1ea2bd3-f94f-4b3d-94ce-88de77907ee4';
+
 /** AsyncStorage 키 네임스페이스. */
 export const StorageKeys = {
   onboardingSeen: 'boheommap:onboarding_seen_v1',

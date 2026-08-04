@@ -15,6 +15,7 @@ import { useBridge } from './src/bridge/useBridge';
 import { useDeepLinks } from './src/features/deeplink/useDeepLinks';
 import type { ResolvedDeepLink } from './src/features/deeplink/resolve';
 import { useAppLock } from './src/features/biometric/useAppLock';
+import { usePush } from './src/features/push/usePush';
 import { runGoogleAuthSession } from './src/features/auth/oauth';
 import { downloadToGallery } from './src/features/media/download';
 import {
@@ -116,6 +117,35 @@ function MainScreen() {
   );
 
   useDeepLinks(handleDeepLink);
+
+  // 푸시 알림: 알림 탭 → 딥링크 경로로 이동(딥링크 로직 재사용).
+  const handleNotificationPath = useCallback(
+    (path: string) => {
+      const normalized = path.startsWith('/') ? path : `/${path}`;
+      handleDeepLink({ path: normalized, webUrl: `${APP_URL}${normalized}` });
+    },
+    [handleDeepLink]
+  );
+  const pushToken = usePush({ onNotificationPath: handleNotificationPath });
+  const pushTokenRef = useRef<string | null>(null);
+
+  const emitPushToken = useCallback(
+    (token: string) => {
+      emitToWeb({
+        v: PROTOCOL_VERSION,
+        type: 'push-token',
+        token,
+        platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      });
+    },
+    [emitToWeb]
+  );
+
+  // 토큰이 도착하면 보관하고, 이미 첫 로드가 끝났으면 즉시 웹에 전달.
+  useEffect(() => {
+    pushTokenRef.current = pushToken;
+    if (pushToken && hasLoadedOnceRef.current) emitPushToken(pushToken);
+  }, [pushToken, emitPushToken]);
 
   // 네이티브 정적 스플래시(흰 화면 방지)는 애니메이션 오버레이가 화면을 덮자마자 내린다.
   useEffect(() => {
@@ -284,6 +314,9 @@ function MainScreen() {
     // 브릿지 핸드셰이크: 웹이 "앱 안"임을 인지하고 capabilities에 맞춰 UI를 전환하게 한다.
     sendReady();
 
+    // 푸시 토큰이 이미 준비됐다면 ready 직후 웹에 전달(웹 BridgeProvider가 저장).
+    if (pushTokenRef.current) emitPushToken(pushTokenRef.current);
+
     // 콜드 스타트 딥링크: 첫 로드가 끝난 뒤 대기 중인 링크를 적용한다.
     if (pendingDeepLinkRef.current) {
       const pending = pendingDeepLinkRef.current;
@@ -299,7 +332,7 @@ function MainScreen() {
       splashHiddenRef.current = true;
       advanceFromSplash();
     }, remaining);
-  }, [advanceFromSplash, sendReady, applyDeepLink]);
+  }, [advanceFromSplash, sendReady, applyDeepLink, emitPushToken]);
 
   const webViewElement = (
     <WebView

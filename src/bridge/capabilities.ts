@@ -7,4 +7,12 @@
  */
 import type { Capability } from './protocol';
 
-export const APP_CAPABILITIES: Capability[] = ['haptic', 'deeplink', 'share', 'biometric', 'qr-scan'];
+export const APP_CAPABILITIES: Capability[] = [
+  'haptic',
+  'deeplink',
+  'share',
+  'biometric',
+  'qr-scan',
+  'push',
+  'badge',
+];

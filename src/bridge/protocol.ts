@@ -33,11 +33,13 @@ export type WebToApp =
   | { v?: number; type: 'request-biometric'; reqId?: string; reason?: string }
   | { v?: number; type: 'set-biometric-lock'; enabled: boolean }
   | { v?: number; type: 'open-qr-scanner'; reqId?: string }
+  | { v?: number; type: 'set-badge'; count: number }
   | { v?: number; type: 'log'; level: 'info' | 'warn' | 'error'; message: string };
 
 /** 앱 → 웹 (현재 구현분). */
 export type AppToWeb =
   | { v: number; type: 'ready'; platform: 'ios' | 'android'; appVersion: string; capabilities: Capability[] }
+  | { v: number; type: 'push-token'; token: string; platform: 'ios' | 'android' }
   | { v: number; type: 'deeplink'; path: string; source: 'notification' | 'link' | 'cold-start' }
   | { v: number; type: 'biometric-result'; reqId: string; ok: boolean; error?: string }
   | { v: number; type: 'qr-result'; reqId: string; value: string }
