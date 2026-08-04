@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors } from '../config/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -124,7 +125,7 @@ export function Onboarding({ onFinish }: { onFinish: () => void }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.bg,
   },
   skip: {
     position: 'absolute',
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textDisabled,
   },
   scroll: {
     flex: 1,
@@ -152,14 +153,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 21,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.text,
     textAlign: 'center',
   },
   body: {
     marginTop: 10,
     fontSize: 14,
     lineHeight: 21,
-    color: '#6B7280',
+    color: colors.textSub,
     textAlign: 'center',
   },
   footer: {
@@ -176,21 +177,21 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
   },
   dotActive: {
     width: 18,
-    backgroundColor: '#152D70',
+    backgroundColor: colors.primary,
   },
   nextButton: {
     alignSelf: 'stretch',
-    backgroundColor: '#152D70',
+    backgroundColor: colors.primary,
     borderRadius: 999,
     paddingVertical: 15,
     alignItems: 'center',
   },
   nextButtonText: {
-    color: '#ffffff',
+    color: colors.white,
     fontSize: 15,
     fontWeight: '700',
   },

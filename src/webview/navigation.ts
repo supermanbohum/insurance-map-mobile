@@ -1,0 +1,46 @@
+/**
+ * WebView URL 판별 로직 - "이 URL을 WebView 안에서 계속 로드할지, 외부 앱/브라우저로
+ * 넘길지, 아니면 OAuth 우회를 태울지"를 결정한다. 순수 함수만 모아 테스트/재사용 쉽게 한다.
+ */
+import { Linking } from 'react-native';
+import { APP_HOST, EXTERNAL_SCHEMES, OAUTH_HOST_SUFFIXES } from '../config/constants';
+import { logger } from '../utils/logger';
+
+/** 우리 앱(웹) 도메인이거나 Supabase 등 내부 처리 대상 호스트인가. */
+export function isAppDomain(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === APP_HOST || OAUTH_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
+  } catch {
+    return false;
+  }
+}
+
+/** Supabase 구글 로그인 시작 URL인가 (Custom Tab 우회 대상). */
+export function isSupabaseAuthorizeUrl(url: string): boolean {
+  try {
+    const { hostname, pathname } = new URL(url);
+    return hostname.endsWith('.supabase.co') && pathname.startsWith('/auth/v1/authorize');
+  } catch {
+    return false;
+  }
+}
+
+/** WebView가 아니라 외부 앱/브라우저로 열어야 하는 URL인가. */
+export function shouldOpenExternally(url: string): boolean {
+  if (EXTERNAL_SCHEMES.some((scheme) => url.startsWith(scheme))) return true;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return !isAppDomain(url);
+  }
+  // about:blank, data:, javascript: 등은 WebView 내부에서 그대로 처리.
+  return false;
+}
+
+/** 외부 앱/브라우저로 열기 (대상 앱이 없으면 조용히 무시해 WebView가 멈추지 않게). */
+export async function openExternally(url: string): Promise<void> {
+  try {
+    await Linking.openURL(url);
+  } catch (e) {
+    logger.warn('외부 링크 열기 실패', url, e);
+  }
+}

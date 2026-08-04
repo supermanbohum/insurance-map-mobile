@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Image, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { colors } from '../config/theme';
 
 /**
  * expo-splash-screen의 정적 이미지 스플래시는 JS가 뜨기 전 흰 화면을 막아주는
@@ -59,7 +60,7 @@ export function AnimatedSplash({ visible, onHidden }: { visible: boolean; onHidd
       <View style={styles.center}>
         <Animated.View style={[styles.glow, { opacity: glowOpacity }]} />
         <Animated.Image
-          source={require('../assets/splash-icon.png')}
+          source={require('../../assets/splash-icon.png')}
           style={[styles.logo, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}
           resizeMode="contain"
         />
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#152D70',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: '#4C7CFF',
+    backgroundColor: colors.glow,
   },
   logo: {
     width: 88,
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     fontSize: 24,
     fontWeight: '800',
-    color: '#ffffff',
+    color: colors.white,
     letterSpacing: 0.2,
   },
   subtitle: {
