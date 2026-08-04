@@ -43,8 +43,12 @@
         "INTERNET",
         "READ_MEDIA_IMAGES",
         "READ_MEDIA_VIDEO",
-        "READ_MEDIA_AUDIO",
-        "READ_MEDIA_VISUAL_USER_SELECTED"
+        "READ_MEDIA_VISUAL_USER_SELECTED",
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_AUDIO"
       ]
     },
     "web": {
