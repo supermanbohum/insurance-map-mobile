@@ -53,11 +53,11 @@ function MainScreen() {
   const insets = useSafeAreaInsets();
   const { locked, unlock, setLockEnabled } = useAppLock();
   const [qrReqId, setQrReqId] = useState<string | null>(null);
+  // 안정적인 콜백 참조 - 로딩 진행 등 잦은 리렌더에도 handleWebMessage/onMessage가 재생성되지 않게.
+  const openQrScanner = useCallback((reqId: string) => setQrReqId(reqId), []);
   const { handleWebMessage, sendReady, emitToWeb } = useBridge(webViewRef, {
-    onSetBiometricLock: (enabled) => {
-      setLockEnabled(enabled);
-    },
-    onOpenQrScanner: (reqId) => setQrReqId(reqId),
+    onSetBiometricLock: setLockEnabled,
+    onOpenQrScanner: openQrScanner,
   });
 
   const handleQrResult = useCallback(
@@ -310,6 +310,8 @@ function MainScreen() {
     hasLoadedOnceRef.current = true;
     setWebLoading(false);
     setRefreshing(false);
+    // 로드가 실제로 끝났으면 에러 화면을 자동 해제(onError 오탐으로 고착되는 것 방지).
+    setWebError(false);
 
     // 브릿지 핸드셰이크: 웹이 "앱 안"임을 인지하고 capabilities에 맞춰 UI를 전환하게 한다.
     sendReady();
