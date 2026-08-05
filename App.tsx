@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -170,6 +170,16 @@ function MainScreen() {
     });
     return () => unsubscribe();
   }, []);
+
+  // 오프라인→온라인 복귀 처리. WebView는 언마운트하지 않으므로(작성 중 폼 보존),
+  // 첫 로드조차 못한 경우(콜드 스타트 오프라인)에만 리로드해 화면을 복구한다.
+  const wasConnectedRef = useRef(true);
+  useEffect(() => {
+    if (!wasConnectedRef.current && isConnected && !hasLoadedOnceRef.current) {
+      handleReload();
+    }
+    wasConnectedRef.current = isConnected;
+  }, [isConnected]);
 
   // GPS 권한 - 지도에서 내 위치를 쓰므로 앱 시작 시 미리 요청.
   useEffect(() => {
@@ -360,6 +370,8 @@ function MainScreen() {
       mediaPlaybackRequiresUserAction={false}
       setSupportMultipleWindows={false}
       startInLoadingState
+      // iOS: 가장자리 스와이프로 WebView 히스토리 뒤로/앞으로 (Android 하드웨어 백과 짝).
+      allowsBackForwardNavigationGestures
       // 당겨서 새로고침 - iOS 네이티브(@platform ios). Android는 미지원이지만
       // ScrollView 래핑 시 스크롤이 충돌하므로 감싸지 않고 WebView 네이티브 스크롤을 유지한다.
       pullToRefreshEnabled
@@ -369,20 +381,20 @@ function MainScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      {!isConnected ? (
-        <OfflineScreen onRetry={handleReload} />
-      ) : (
-        <>
-          {/* Android 15+(edge-to-edge 강제)에서 웹 헤더/하단탭이 시스템 바 밑으로
-              들어가지 않도록 상/하단 inset을 흰 배경으로 채운다. */}
-          <View style={{ height: insets.top, backgroundColor: colors.bg }} />
-          {/* WebView를 그대로 렌더 - 네이티브 스크롤 유지.
-              iOS는 pullToRefreshEnabled(네이티브)로 당겨서 새로고침, Android는
-              스크롤 충돌을 막기 위해 ScrollView로 감싸지 않는다. */}
-          {webViewElement}
-          <View style={{ height: insets.bottom, backgroundColor: colors.bg }} />
-          <LoadingBar progress={loadProgress} visible={webLoading && loadProgress < 1} />
-        </>
+      {/* Android 15+(edge-to-edge 강제)에서 웹 헤더/하단탭이 시스템 바 밑으로
+          들어가지 않도록 상/하단 inset을 흰 배경으로 채운다. */}
+      <View style={{ height: insets.top, backgroundColor: colors.bg }} />
+      {/* WebView는 항상 마운트 유지(오프라인에도 언마운트하지 않음) - 순단에 작성 중이던
+          폼/스크롤 상태가 사라지지 않게 한다. 네이티브 스크롤 유지를 위해 감싸지 않는다. */}
+      {webViewElement}
+      <View style={{ height: insets.bottom, backgroundColor: colors.bg }} />
+      <LoadingBar progress={loadProgress} visible={webLoading && loadProgress < 1} />
+
+      {/* 오프라인: WebView를 덮는 오버레이(언마운트 대신). 재연결되면 자동으로 사라진다. */}
+      {!isConnected && (
+        <View style={styles.offlineOverlay}>
+          <OfflineScreen onRetry={handleReload} />
+        </View>
       )}
 
       {uiStage === 'onboarding' && (
@@ -430,6 +442,15 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 5,
+  },
+  offlineOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.bg,
+    zIndex: 9,
   },
   webview: {
     flex: 1,
