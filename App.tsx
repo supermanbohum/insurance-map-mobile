@@ -90,6 +90,7 @@ function MainScreen() {
   const splashHiddenRef = useRef(false);
   const hasLoadedOnceRef = useRef(false);
   const pendingDeepLinkRef = useRef<ResolvedDeepLink | null>(null);
+  const webLoadingRef = useRef(true);
 
   // 딥링크(커스텀 스킴/유니버설 링크)를 받으면 해당 웹 경로로 WebView를 이동시키고,
   // 웹에도 알린다(웹이 SPA 라우팅으로 반응할 수 있도록 - 없어도 이동은 보장됨).
@@ -287,12 +288,17 @@ function MainScreen() {
   }, []);
 
   // WebView 로드 실패 시 에러 화면을 띄우고, 재시도로 WebView를 새로 마운트한다.
+  // 단, 활성 로딩 중(webLoadingRef)의 실패만 전체 에러화면으로 처리한다 - 이미 로드가
+  // 끝난 뒤 발생하는 서브리소스(이미지 등) 오류로는 화면을 덮지 않는다(오탐 방지).
   const handleWebError = useCallback(() => {
+    if (!webLoadingRef.current) return;
+    webLoadingRef.current = false;
     setWebError(true);
     setWebLoading(false);
   }, []);
 
   const retryWeb = useCallback(() => {
+    webLoadingRef.current = true;
     setWebError(false);
     setWebLoading(true);
     setLoadProgress(0);
@@ -300,6 +306,7 @@ function MainScreen() {
   }, []);
 
   const handleLoadStart = useCallback(() => {
+    webLoadingRef.current = true;
     setWebLoading(true);
     setLoadProgress(0);
   }, []);
@@ -310,6 +317,7 @@ function MainScreen() {
 
   const handleLoadEnd = useCallback(() => {
     hasLoadedOnceRef.current = true;
+    webLoadingRef.current = false;
     setWebLoading(false);
     // 로드가 실제로 끝났으면 에러 화면을 자동 해제(onError 오탐으로 고착되는 것 방지).
     setWebError(false);
