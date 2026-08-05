@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, BackHandler, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
@@ -83,7 +83,6 @@ function MainScreen() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [webLoading, setWebLoading] = useState(true);
   const [webError, setWebError] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [uiStage, setUiStage] = useState<'splash' | 'onboarding' | 'app'>('splash');
   const [splashMounted, setSplashMounted] = useState(true);
   const backPressedOnceRef = useRef(false);
@@ -277,17 +276,10 @@ function MainScreen() {
     setWebViewKey((k) => k + 1);
   }, []);
 
-  // 당겨서 새로고침(Android). iOS는 WebView pullToRefreshEnabled가 네이티브로 처리.
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    webViewRef.current?.reload();
-  }, []);
-
   // WebView 로드 실패 시 에러 화면을 띄우고, 재시도로 WebView를 새로 마운트한다.
   const handleWebError = useCallback(() => {
     setWebError(true);
     setWebLoading(false);
-    setRefreshing(false);
   }, []);
 
   const retryWeb = useCallback(() => {
@@ -309,7 +301,6 @@ function MainScreen() {
   const handleLoadEnd = useCallback(() => {
     hasLoadedOnceRef.current = true;
     setWebLoading(false);
-    setRefreshing(false);
     // 로드가 실제로 끝났으면 에러 화면을 자동 해제(onError 오탐으로 고착되는 것 방지).
     setWebError(false);
 
@@ -369,7 +360,8 @@ function MainScreen() {
       mediaPlaybackRequiresUserAction={false}
       setSupportMultipleWindows={false}
       startInLoadingState
-      // iOS 당겨서 새로고침(네이티브). Android는 아래 RefreshControl로 처리.
+      // 당겨서 새로고침 - iOS 네이티브(@platform ios). Android는 미지원이지만
+      // ScrollView 래핑 시 스크롤이 충돌하므로 감싸지 않고 WebView 네이티브 스크롤을 유지한다.
       pullToRefreshEnabled
     />
   );
@@ -384,25 +376,10 @@ function MainScreen() {
           {/* Android 15+(edge-to-edge 강제)에서 웹 헤더/하단탭이 시스템 바 밑으로
               들어가지 않도록 상/하단 inset을 흰 배경으로 채운다. */}
           <View style={{ height: insets.top, backgroundColor: colors.bg }} />
-          {Platform.OS === 'android' ? (
-            <ScrollView
-              style={styles.webview}
-              contentContainerStyle={styles.webviewFill}
-              nestedScrollEnabled
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  colors={[colors.primary]}
-                  tintColor={colors.primary}
-                />
-              }
-            >
-              {webViewElement}
-            </ScrollView>
-          ) : (
-            webViewElement
-          )}
+          {/* WebView를 그대로 렌더 - 네이티브 스크롤 유지.
+              iOS는 pullToRefreshEnabled(네이티브)로 당겨서 새로고침, Android는
+              스크롤 충돌을 막기 위해 ScrollView로 감싸지 않는다. */}
+          {webViewElement}
           <View style={{ height: insets.bottom, backgroundColor: colors.bg }} />
           <LoadingBar progress={loadProgress} visible={webLoading && loadProgress < 1} />
         </>
@@ -457,9 +434,5 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: colors.bg,
-  },
-  // Android RefreshControl용 ScrollView 콘텐츠가 뷰포트를 채워 WebView가 내부 스크롤하도록.
-  webviewFill: {
-    flex: 1,
   },
 });
