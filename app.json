@@ -15,7 +15,7 @@
     },
     "android": {
       "package": "com.bohummap.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "intentFilters": [
         {
           "action": "VIEW",
