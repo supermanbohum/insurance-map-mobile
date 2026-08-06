@@ -36,5 +36,5 @@ export const StorageKeys = {
 } as const;
 
 /** 스플래시 최소/최대 노출 시간(ms) - 프리미엄 인트로 시퀀스가 재생될 시간 확보 + 먹통 방지. */
-export const MIN_SPLASH_MS = 2400;
-export const MAX_SPLASH_MS = 4500;
+export const MIN_SPLASH_MS = 2600;
+export const MAX_SPLASH_MS = 4800;

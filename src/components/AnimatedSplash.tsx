@@ -1,39 +1,48 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 /**
- * 프리미엄 브랜드 스플래시 (V2 리뉴얼).
- * 컨셉: 밝은 블루 그라데이션 → "보험맵" 등장 → 대한민국 보험인의 지도 → 70만 보험인의 선택.
- * 이전의 원형 glow/이상한 배경은 전면 제거. 앱 아이콘의 로열블루와 팔레트를 통일한다.
+ * 프리미엄 브랜드 스플래시 (V2).
+ * 시퀀스: ① 보험맵 로고 등장 → ② "대한민국 보험인의 지도 / 70만 보험인의 선택"(함께)
+ *          → ③ "보험맵" 워드마크(피날레).
+ * 로고/아이콘/스플래시 모두 동일 브랜드 아이덴티티(assets/icon.png)를 사용한다.
+ * 이전의 원형 glow/이상한 배경은 전면 제거. Android/iOS 동일 동작(Animated + LinearGradient).
  */
 
-// 앱 아이콘(로열블루 그라데이션)과 맞춘 색상.
-const GRADIENT = ['#3E8BFF', '#2472EC', '#1553C4'] as const;
+// 아이콘(로열블루)보다 밝은 스카이블루 그라데이션 → 아이콘이 또렷하게 떠 보이게.
+const GRADIENT = ['#7DB4FF', '#4A93F5', '#2E80F5'] as const;
 
 export function AnimatedSplash({ visible, onHidden }: { visible: boolean; onHidden?: () => void }) {
-  const heroOpacity = useRef(new Animated.Value(0)).current;
-  const heroScale = useRef(new Animated.Value(0.9)).current;
-  const heroTranslateY = useRef(new Animated.Value(12)).current;
-  const line1Opacity = useRef(new Animated.Value(0)).current;
-  const line2Opacity = useRef(new Animated.Value(0)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.86)).current;
+  const logoTranslateY = useRef(new Animated.Value(10)).current;
+  const taglinesOpacity = useRef(new Animated.Value(0)).current;
+  const wordmarkOpacity = useRef(new Animated.Value(0)).current;
+  const wordmarkScale = useRef(new Animated.Value(0.92)).current;
   const overlayOpacity = useRef(new Animated.Value(1)).current;
   const hasFadedOut = useRef(false);
 
-  // 등장 시퀀스: 보험맵 → 대한민국 보험인의 지도 → 70만 보험인의 선택.
+  // ① 로고 → ② 태그라인(함께) → ③ 보험맵 워드마크.
   useEffect(() => {
     Animated.sequence([
+      // ① 로고 등장
       Animated.parallel([
-        Animated.timing(heroOpacity, { toValue: 1, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(heroScale, { toValue: 1, duration: 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(heroTranslateY, { toValue: 0, duration: 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(logoScale, { toValue: 1, duration: 680, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(logoTranslateY, { toValue: 0, duration: 680, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
-      Animated.timing(line1Opacity, { toValue: 1, duration: 420, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      Animated.delay(650),
-      Animated.timing(line1Opacity, { toValue: 0, duration: 360, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-      Animated.timing(line2Opacity, { toValue: 1, duration: 460, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      // ② 두 태그라인 함께 등장 + 잠시 유지
+      Animated.timing(taglinesOpacity, { toValue: 1, duration: 460, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.delay(700),
+      // ③ 태그라인 사라지고 보험맵 워드마크 등장
+      Animated.parallel([
+        Animated.timing(taglinesOpacity, { toValue: 0, duration: 360, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+        Animated.timing(wordmarkOpacity, { toValue: 1, duration: 480, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(wordmarkScale, { toValue: 1, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      ]),
     ]).start();
-  }, [heroOpacity, heroScale, heroTranslateY, line1Opacity, line2Opacity]);
+  }, [logoOpacity, logoScale, logoTranslateY, taglinesOpacity, wordmarkOpacity, wordmarkScale]);
 
   // visible=false가 되면 오버레이만 부드럽게 사라진다.
   useEffect(() => {
@@ -54,28 +63,27 @@ export function AnimatedSplash({ visible, onHidden }: { visible: boolean; onHidd
       pointerEvents={visible ? 'auto' : 'none'}
       style={[styles.fill, { opacity: overlayOpacity }]}
     >
-      <LinearGradient
-        colors={GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.fill}
-      >
+      <LinearGradient colors={GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fill}>
         <View style={styles.center}>
-          <Animated.Text
+          <Animated.Image
+            source={require('../../assets/icon.png')}
+            resizeMode="contain"
             style={[
-              styles.brand,
-              { opacity: heroOpacity, transform: [{ scale: heroScale }, { translateY: heroTranslateY }] },
+              styles.logo,
+              { opacity: logoOpacity, transform: [{ scale: logoScale }, { translateY: logoTranslateY }] },
             ]}
-          >
-            보험맵
-          </Animated.Text>
+          />
 
-          <View style={styles.taglineZone}>
-            <Animated.Text style={[styles.tagline, { opacity: line1Opacity }]}>
-              대한민국 보험인의 지도
-            </Animated.Text>
-            <Animated.Text style={[styles.tagline, styles.taglineOverlay, { opacity: line2Opacity }]}>
-              70만 보험인의 선택
+          {/* 중앙 존: 태그라인(함께) ↔ 보험맵 워드마크가 교차. 레이아웃 흔들림 방지 위해 고정 높이. */}
+          <View style={styles.midZone}>
+            <Animated.View style={[styles.midItem, { opacity: taglinesOpacity }]}>
+              <Text style={styles.tagline}>대한민국 보험인의 지도</Text>
+              <Text style={styles.tagline}>70만 보험인의 선택</Text>
+            </Animated.View>
+            <Animated.Text
+              style={[styles.wordmark, { opacity: wordmarkOpacity, transform: [{ scale: wordmarkScale }] }]}
+            >
+              보험맵
             </Animated.Text>
           </View>
         </View>
@@ -98,28 +106,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brand: {
-    fontSize: 46,
+  logo: {
+    width: 132,
+    height: 132,
+  },
+  midZone: {
+    marginTop: 26,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  midItem: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  tagline: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.95)',
+    letterSpacing: 0.3,
+    lineHeight: 22,
+  },
+  wordmark: {
+    position: 'absolute',
+    fontSize: 40,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 1,
     textShadowColor: 'rgba(0,0,0,0.18)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
-  },
-  taglineZone: {
-    marginTop: 18,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tagline: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.92)',
-    letterSpacing: 0.3,
-  },
-  taglineOverlay: {
-    position: 'absolute',
   },
 });
