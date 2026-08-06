@@ -1,50 +1,47 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { colors } from '../config/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 /**
- * expo-splash-screen의 정적 이미지 스플래시는 JS가 뜨기 전 흰 화면을 막아주는
- * 역할만 하고 곧바로 내려간다 - 실제 "로고 페이드인 → 스케일 → 텍스트 → 서브카피 →
- * 은은한 글로우" 연출은 이 컴포넌트가 담당한다. WebView는 이 오버레이 아래에서
- * 이미 로딩을 시작한 상태이고(동시 로딩), onReady가 true가 되면 오버레이만 페이드아웃된다.
+ * 프리미엄 브랜드 스플래시 (V2 리뉴얼).
+ * 컨셉: 밝은 블루 그라데이션 → "보험맵" 등장 → 대한민국 보험인의 지도 → 70만 보험인의 선택.
+ * 이전의 원형 glow/이상한 배경은 전면 제거. 앱 아이콘의 로열블루와 팔레트를 통일한다.
  */
+
+// 앱 아이콘(로열블루 그라데이션)과 맞춘 색상.
+const GRADIENT = ['#3E8BFF', '#2472EC', '#1553C4'] as const;
+
 export function AnimatedSplash({ visible, onHidden }: { visible: boolean; onHidden?: () => void }) {
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.95)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleTranslateY = useRef(new Animated.Value(8)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
+  const heroOpacity = useRef(new Animated.Value(0)).current;
+  const heroScale = useRef(new Animated.Value(0.9)).current;
+  const heroTranslateY = useRef(new Animated.Value(12)).current;
+  const line1Opacity = useRef(new Animated.Value(0)).current;
+  const line2Opacity = useRef(new Animated.Value(0)).current;
   const overlayOpacity = useRef(new Animated.Value(1)).current;
   const hasFadedOut = useRef(false);
 
+  // 등장 시퀀스: 보험맵 → 대한민국 보험인의 지도 → 70만 보험인의 선택.
   useEffect(() => {
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(logoOpacity, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(logoScale, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(heroOpacity, { toValue: 1, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(heroScale, { toValue: 1, duration: 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(heroTranslateY, { toValue: 0, duration: 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
-      Animated.parallel([
-        Animated.timing(titleOpacity, { toValue: 1, duration: 320, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.timing(titleTranslateY, { toValue: 0, duration: 320, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      ]),
-      Animated.timing(subtitleOpacity, { toValue: 1, duration: 280, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-    ]).start(() => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowOpacity, { toValue: 0.55, duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(glowOpacity, { toValue: 0, duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        ])
-      ).start();
-    });
-  }, [glowOpacity, logoOpacity, logoScale, subtitleOpacity, titleOpacity, titleTranslateY]);
+      Animated.timing(line1Opacity, { toValue: 1, duration: 420, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.delay(650),
+      Animated.timing(line1Opacity, { toValue: 0, duration: 360, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.timing(line2Opacity, { toValue: 1, duration: 460, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+    ]).start();
+  }, [heroOpacity, heroScale, heroTranslateY, line1Opacity, line2Opacity]);
 
+  // visible=false가 되면 오버레이만 부드럽게 사라진다.
   useEffect(() => {
     if (visible || hasFadedOut.current) return;
     hasFadedOut.current = true;
     Animated.timing(overlayOpacity, {
       toValue: 0,
-      duration: 380,
+      duration: 420,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
@@ -55,64 +52,74 @@ export function AnimatedSplash({ visible, onHidden }: { visible: boolean; onHidd
   return (
     <Animated.View
       pointerEvents={visible ? 'auto' : 'none'}
-      style={[styles.overlay, { opacity: overlayOpacity }]}
+      style={[styles.fill, { opacity: overlayOpacity }]}
     >
-      <View style={styles.center}>
-        <Animated.View style={[styles.glow, { opacity: glowOpacity }]} />
-        <Animated.Image
-          source={require('../../assets/splash-icon.png')}
-          style={[styles.logo, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}
-          resizeMode="contain"
-        />
-        <Animated.Text style={[styles.title, { opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>
-          보험맵
-        </Animated.Text>
-        <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-          전국 보험 GA 검색 플랫폼
-        </Animated.Text>
-      </View>
+      <LinearGradient
+        colors={GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.fill}
+      >
+        <View style={styles.center}>
+          <Animated.Text
+            style={[
+              styles.brand,
+              { opacity: heroOpacity, transform: [{ scale: heroScale }, { translateY: heroTranslateY }] },
+            ]}
+          >
+            보험맵
+          </Animated.Text>
+
+          <View style={styles.taglineZone}>
+            <Animated.Text style={[styles.tagline, { opacity: line1Opacity }]}>
+              대한민국 보험인의 지도
+            </Animated.Text>
+            <Animated.Text style={[styles.tagline, styles.taglineOverlay, { opacity: line2Opacity }]}>
+              70만 보험인의 선택
+            </Animated.Text>
+          </View>
+        </View>
+      </LinearGradient>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  fill: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
     zIndex: 10,
   },
   center: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  glow: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: colors.glow,
-  },
-  logo: {
-    width: 88,
-    height: 88,
-  },
-  title: {
-    marginTop: 18,
-    fontSize: 24,
+  brand: {
+    fontSize: 46,
     fontWeight: '800',
-    color: colors.white,
-    letterSpacing: 0.2,
+    color: '#FFFFFF',
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.18)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
-  subtitle: {
-    marginTop: 6,
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.72)',
-    fontWeight: '500',
+  taglineZone: {
+    marginTop: 18,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagline: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.92)',
+    letterSpacing: 0.3,
+  },
+  taglineOverlay: {
+    position: 'absolute',
   },
 });

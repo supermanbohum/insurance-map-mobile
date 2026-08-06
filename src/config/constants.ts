@@ -35,6 +35,6 @@ export const StorageKeys = {
   appLockEnabled: 'boheommap:app_lock_enabled_v1',
 } as const;
 
-/** 스플래시 최소/최대 노출 시간(ms) - 깜빡임 방지 + 먹통 방지. */
-export const MIN_SPLASH_MS = 1500;
-export const MAX_SPLASH_MS = 4000;
+/** 스플래시 최소/최대 노출 시간(ms) - 프리미엄 인트로 시퀀스가 재생될 시간 확보 + 먹통 방지. */
+export const MIN_SPLASH_MS = 2400;
+export const MAX_SPLASH_MS = 4500;
