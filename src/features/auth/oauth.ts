@@ -1,7 +1,11 @@
 /**
- * 구글 OAuth 우회 - Supabase authorize를 Custom Tab(WebView 밖)에서 진행하고,
- * boheommap://auth-callback 으로 복귀하면 웹의 기존 /auth/callback 경로로 결과를 넘긴다.
- * 웹의 콜백 처리 로직은 그대로 재사용하며, 앱은 세션에 관여하지 않는다.
+ * ⚠️ 휴면(DORMANT) - 2026-08-07(A-001)부터 미사용.
+ * 웹에서 간편로그인(Google 등 소셜/OAuth)이 완전히 제거되어 Supabase authorize 흐름이
+ * 발생하지 않으므로 App.tsx의 배선을 해제했다. 파일은 재도입 대비 보존한다.
+ * Google 재도입 시: App.tsx에서 isSupabaseAuthorizeUrl 감지 → runGoogleAuthSession 재배선.
+ *
+ * (원 동작) 구글 OAuth 우회 - Supabase authorize를 Custom Tab(WebView 밖)에서 진행하고,
+ * boheommap://auth-callback 으로 복귀하면 웹의 /auth/callback 경로로 결과를 넘긴다.
  */
 import * as WebBrowser from 'expo-web-browser';
 import { APP_URL, OAUTH_RETURN_URL } from '../../config/constants';

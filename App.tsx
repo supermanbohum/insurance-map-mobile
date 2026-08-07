@@ -16,13 +16,8 @@ import { useDeepLinks } from './src/features/deeplink/useDeepLinks';
 import { resolvePath, type ResolvedDeepLink } from './src/features/deeplink/resolve';
 import { useAppLock } from './src/features/biometric/useAppLock';
 import { usePush } from './src/features/push/usePush';
-import { runGoogleAuthSession } from './src/features/auth/oauth';
 import { downloadToGallery } from './src/features/media/download';
-import {
-  isSupabaseAuthorizeUrl,
-  openExternally,
-  shouldOpenExternally,
-} from './src/webview/navigation';
+import { openExternally, shouldOpenExternally } from './src/webview/navigation';
 import { showToast } from './src/bridge/handlers';
 import { haptics } from './src/utils/haptics';
 import { onboarding } from './src/utils/storage';
@@ -230,37 +225,20 @@ function MainScreen() {
     setCanGoBack(navState.canGoBack);
   }, []);
 
-  /**
-   * 구글 로그인: Supabase authorize를 감지하면 Custom Tab(WebView 밖)에서 진행하고,
-   * boheommap://auth-callback 복귀 시 웹의 /auth/callback 으로 넘겨 로그인을 마무리한다.
-   */
-  const handleGoogleAuthorize = useCallback((authorizeUrl: string) => {
-    runGoogleAuthSession(authorizeUrl)
-      .then((finalUrl) => {
-        if (finalUrl) {
-          webViewRef.current?.injectJavaScript(
-            `window.location.href = ${JSON.stringify(finalUrl)}; true;`
-          );
-        }
-      })
-      .catch(() => {});
+  // [A-001] 간편로그인(Google) 제거: 웹에서 소셜 로그인(signInWithOAuth)이 완전히 제거되어
+  // (2026-08-07 웹 저장소 확인: 로그인 페이지에 소셜 버튼 없음, signInWithOAuth 호출 없음)
+  // Supabase authorize 흐름이 더 이상 발생하지 않는다. 따라서 기존의 Custom Tab 우회
+  // (isSupabaseAuthorizeUrl → runGoogleAuthSession)를 비활성화했다.
+  // 재도입 시: src/features/auth/oauth.ts(휴면)와 navigation.ts의 isSupabaseAuthorizeUrl을
+  // 다시 배선하면 된다. 로그인은 현재 웹 폼(이메일 인증) 기반으로만 동작.
+  const handleShouldStartLoad = useCallback((request: { url: string }) => {
+    const { url } = request;
+    if (shouldOpenExternally(url)) {
+      openExternally(url);
+      return false;
+    }
+    return true;
   }, []);
-
-  const handleShouldStartLoad = useCallback(
-    (request: { url: string }) => {
-      const { url } = request;
-      if (isSupabaseAuthorizeUrl(url)) {
-        handleGoogleAuthorize(url);
-        return false;
-      }
-      if (shouldOpenExternally(url)) {
-        openExternally(url);
-        return false;
-      }
-      return true;
-    },
-    [handleGoogleAuthorize]
-  );
 
   /** Android 전용: WebView가 다운로드 파일을 만나면 앱이 받아 갤러리에 저장. */
   const handleFileDownload = useCallback(

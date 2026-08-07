@@ -16,7 +16,11 @@ export function isAppDomain(url: string): boolean {
   }
 }
 
-/** Supabase 구글 로그인 시작 URL인가 (Custom Tab 우회 대상). */
+/**
+ * Supabase 구글 로그인 시작 URL인가 (Custom Tab 우회 대상).
+ * ⚠️ 휴면(DORMANT, A-001, 2026-08-07): 웹에서 소셜 로그인 제거로 현재 미사용.
+ * OAuth 재도입 시 App.tsx handleShouldStartLoad에서 다시 사용한다.
+ */
 export function isSupabaseAuthorizeUrl(url: string): boolean {
   try {
     const { hostname, pathname } = new URL(url);
