@@ -17,9 +17,9 @@ export function isAppDomain(url: string): boolean {
 }
 
 /**
- * Supabase 구글 로그인 시작 URL인가 (Custom Tab 우회 대상).
- * ⚠️ 휴면(DORMANT, A-001, 2026-08-07): 웹에서 소셜 로그인 제거로 현재 미사용.
- * OAuth 재도입 시 App.tsx handleShouldStartLoad에서 다시 사용한다.
+ * Supabase 소셜 로그인 authorize 시작 URL인가 (Custom Tab 우회 대상, provider-agnostic).
+ * 현재 웹에 소셜 로그인이 없어 미발화이나, **카카오 OAuth 도입 시 그대로 재사용**하므로 유지한다
+ * (CTO 2026-08-07, 삭제 금지). App.tsx handleShouldStartLoad에서 활성 상태로 계속 사용.
  */
 export function isSupabaseAuthorizeUrl(url: string): boolean {
   try {

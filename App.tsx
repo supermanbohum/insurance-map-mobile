@@ -16,8 +16,9 @@ import { useDeepLinks } from './src/features/deeplink/useDeepLinks';
 import { resolvePath, type ResolvedDeepLink } from './src/features/deeplink/resolve';
 import { useAppLock } from './src/features/biometric/useAppLock';
 import { usePush } from './src/features/push/usePush';
+import { runOAuthAuthSession } from './src/features/auth/oauth';
 import { downloadToGallery } from './src/features/media/download';
-import { openExternally, shouldOpenExternally } from './src/webview/navigation';
+import { isSupabaseAuthorizeUrl, openExternally, shouldOpenExternally } from './src/webview/navigation';
 import { showToast } from './src/bridge/handlers';
 import { haptics } from './src/utils/haptics';
 import { onboarding } from './src/utils/storage';
@@ -225,20 +226,39 @@ function MainScreen() {
     setCanGoBack(navState.canGoBack);
   }, []);
 
-  // [A-001] 간편로그인(Google) 제거: 웹에서 소셜 로그인(signInWithOAuth)이 완전히 제거되어
-  // (2026-08-07 웹 저장소 확인: 로그인 페이지에 소셜 버튼 없음, signInWithOAuth 호출 없음)
-  // Supabase authorize 흐름이 더 이상 발생하지 않는다. 따라서 기존의 Custom Tab 우회
-  // (isSupabaseAuthorizeUrl → runGoogleAuthSession)를 비활성화했다.
-  // 재도입 시: src/features/auth/oauth.ts(휴면)와 navigation.ts의 isSupabaseAuthorizeUrl을
-  // 다시 배선하면 된다. 로그인은 현재 웹 폼(이메일 인증) 기반으로만 동작.
-  const handleShouldStartLoad = useCallback((request: { url: string }) => {
-    const { url } = request;
-    if (shouldOpenExternally(url)) {
-      openExternally(url);
-      return false;
-    }
-    return true;
+  // [A-001 정정] OAuth 우회 인프라는 유지한다(CTO 2026-08-07).
+  // 웹의 Google 로그인 제거로 현재 Supabase authorize 흐름은 발생하지 않아 이 분기는
+  // 미발화(inert) 상태이지만, **카카오 OAuth 도입 시 이 경로(Custom Tab 우회 +
+  // boheommap://auth-callback 스킴 콜백)를 그대로 재사용**한다. 제공자 무관(provider-agnostic).
+  const handleOAuthAuthorize = useCallback((authorizeUrl: string) => {
+    runOAuthAuthSession(authorizeUrl)
+      .then((finalUrl) => {
+        if (finalUrl) {
+          webViewRef.current?.injectJavaScript(
+            `window.location.href = ${JSON.stringify(finalUrl)}; true;`
+          );
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const handleShouldStartLoad = useCallback(
+    (request: { url: string }) => {
+      const { url } = request;
+      // Supabase authorize(소셜 로그인)는 WebView에서 차단되므로 Custom Tab 우회.
+      // 현재 웹에 소셜 로그인이 없어 미발화. 카카오 도입 시 자동 동작.
+      if (isSupabaseAuthorizeUrl(url)) {
+        handleOAuthAuthorize(url);
+        return false;
+      }
+      if (shouldOpenExternally(url)) {
+        openExternally(url);
+        return false;
+      }
+      return true;
+    },
+    [handleOAuthAuthorize]
+  );
 
   /** Android 전용: WebView가 다운로드 파일을 만나면 앱이 받아 갤러리에 저장. */
   const handleFileDownload = useCallback(
