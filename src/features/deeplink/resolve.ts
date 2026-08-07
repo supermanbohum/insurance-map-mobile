@@ -29,22 +29,14 @@ const IGNORED_SCHEME_HOSTS = new Set(['auth-callback']);
 const ALLOWED_WEB_HOSTS = new Set([APP_HOST, `www.${APP_HOST}`]);
 
 /**
- * 실제로 존재하는 최상위 라우트(딥링크 통과 허용).
- * ⚠️ 웹이 최상위 세그먼트를 추가하면 여기에도 넣어야 한다(안 넣으면 홈 폴백됨).
- * 'partner' = 파트너센터(예: 푸시 착지점 /partner/branches/{id}/performance — 문의 도착 알림).
+ * 경로(pathname)를 웹 경로로 매핑. 순수 함수.
+ *
+ * **패스스루 방식(A-013, 2026-08-08 CTO 확정)**: 화이트리스트(KNOWN_TOP)는 웹이 라우트를
+ * 추가할 때마다 조용히 홈으로 깨지므로 폐기. **구경로만 신경로로 remap하고, 나머지는 그대로
+ * 통과**시킨다(미지 경로는 웹이 자체 404 렌더). 도메인은 항상 bohummap.com으로 고정된다
+ * (resolvePath/resolveDeepLink가 webUrl = APP_URL + path로만 조립 → 외부 URL로 열릴 경로 없음).
+ * OAuth 콜백(auth-callback / /auth/callback)의 명시적 무시는 resolveDeepLink에서 유지(블랙리스트).
  */
-const KNOWN_TOP = new Set([
-  'branch', 'ga', 'planner-market', 'post', 'board', 'chat',
-  'top-designer', 'salary-ranking', 'region', 'my', 'search', 'map',
-  'community', 'popular', 'contact', 'find-id', 'reset-password',
-  'delete-account', 'privacy', 'terms', 'refund-policy', 'login',
-  'signup', 'write', 'top-register', 'partner', 'admin',
-]);
-
-/** 준비 중(스텁) - 딥링크 대상에서 제외하고 홈으로 폴백. */
-const STUB_TOP = new Set(['jobs', 'events', 'best']);
-
-/** 경로(pathname)를 실제 라우트로 매핑. 순수 함수. */
 export function mapPathname(pathname: string): string {
   let p = `/${pathname}`.replace(/\/{2,}/g, '/');
   if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
@@ -54,10 +46,11 @@ export function mapPathname(pathname: string): string {
   const first = segs[0];
   const rest = segs.slice(1);
 
+  // 구경로만 신경로로 remap. 나머지는 패스스루.
   switch (first) {
     case 'designer': // 구: 설계사 → 설계사마켓
       return rest.length ? `/planner-market/${rest.join('/')}` : '/planner-market';
-    case 'chat': // 단일 글로벌 룸(roomId 없음)
+    case 'chat': // 단일 글로벌 룸(roomId 없음) → 하위 경로 collapse
       return '/chat';
     case 'notice': // 공지 → 게시판 notice 카테고리
       return '/board/notice';
@@ -65,12 +58,8 @@ export function mapPathname(pathname: string): string {
     case 'ads':
       return '/'; // 대응 라우트 없음 → 홈
     default:
-      break;
+      return p; // 패스스루(실제 라우트/미지 모두 웹에 위임)
   }
-
-  if (STUB_TOP.has(first)) return '/'; // 준비 중 → 홈
-  if (KNOWN_TOP.has(first)) return p; // 실제 라우트 → 통과
-  return '/'; // 알 수 없음 → 홈(404 방지)
 }
 
 /** 원시 경로(예: 푸시 data.path)를 매핑된 ResolvedDeepLink로 변환. */

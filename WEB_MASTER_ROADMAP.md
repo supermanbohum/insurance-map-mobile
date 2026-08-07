@@ -45,7 +45,7 @@ Phase 0 + Phase 1 완료(main 반영). 하이브리드(WebView + 네이티브 �
 | `/partner/*`, `/admin/*` | 파트너센터/관리자(로그인 게이트) |
 | `/auth/callback` | OAuth 복귀(앱이 별도 처리, 딥링크 무시) |
 
-> 구경로(`/designer`,`/chat/{id}`,`/notice`,`/recruiting`,`/ads`)와 미지/스텁 경로는 앱 `resolve.ts`가 신경로 매핑 또는 홈으로 안전 폴백(404 방지). 웹이 라우트를 추가/변경하면 이 표 + 앱 `resolve.ts`의 `KNOWN_TOP`를 갱신.
+> **패스스루(A-013)**: 앱 `resolve.ts`는 구경로(`/designer`,`/chat/{id}`,`/notice`,`/recruiting`,`/ads`)만 remap하고 **나머지는 그대로 웹에 통과**시킨다 → **웹이 라우트를 추가해도 앱 수정 불필요**(자동 동작). 미지 경로는 웹이 자체 404 렌더. 도메인은 bohummap.com 고정. (웹팀 요청: 404 페이지에 "홈으로" 안내가 있으면 좋음)
 
 ## 4. 푸시 페이로드 계약
 

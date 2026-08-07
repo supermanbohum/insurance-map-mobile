@@ -251,7 +251,7 @@ async function shareProfile(url, title) {
 
 ## 5. 딥링크 경로 계약 (Deeplink Routes)
 
-앱 → 웹 `deeplink`의 `path`, 그리고 App/Universal Links가 매핑하는 경로. **실제 웹 라우트(2026-08-07 web `src/app/(main)` 직접 확인)와 1:1 일치**해야 한다. 정합화 로직은 `src/features/deeplink/resolve.ts`(순수 함수, 단위테스트). 웹 라우트가 바뀌면 이 표와 `resolve.ts`의 `KNOWN_TOP`를 함께 갱신한다.
+앱 → 웹 `deeplink`의 `path`. 정합화 로직은 `src/features/deeplink/resolve.ts`(순수 함수, 단위테스트). **패스스루 방식(A-013, 2026-08-08)**: 화이트리스트 없이 **구경로만 remap하고 나머지는 그대로 웹에 통과**시킨다 → 웹이 라우트를 추가해도 앱 수정 없이 자동 동작(미지 경로는 웹이 자체 404 렌더). 도메인은 항상 `bohummap.com`으로 고정(외부 URL로 열릴 경로 없음). 아래 표는 참고용이며, 표에 없어도 실제 웹 라우트면 통과된다.
 
 **실제 라우트 (딥링크 통과)**
 | 딥링크 | 웹 경로 | 설명 |
@@ -270,15 +270,15 @@ async function shareProfile(url, title) {
 | `boheommap://partner/...` / `boheommap://admin/...` | `/partner/*` / `/admin/*` | 파트너센터/관리자(로그인 게이트) |
 | `boheommap://auth-callback` | — | OAuth 복귀 전용(딥링크에서 무시) |
 
-**구경로 매핑/폴백 (404 방지)** — `resolve.ts`가 자동 처리
+**구경로 remap / 특수 처리** — `resolve.ts`가 자동 처리 (그 외 모든 경로는 웹으로 패스스루)
 | 들어온 경로 | 처리 |
 |---|---|
 | `designer/{id}` | → `/planner-market/{id}` |
 | `chat/{anything}` | → `/chat` |
 | `notice(/{id})` | → `/board/notice` |
 | `recruiting/*`, `ads/*` | → `/` (홈) |
-| 스텁 `jobs`,`events`,`best`(준비 중) | → `/` (홈) |
-| 알 수 없는 경로 | → `/` (홈, 절대 404 금지) |
+| `jobs`,`events`,`best` 등 나머지 실제 라우트 | → 그대로 통과(웹이 렌더) |
+| 알 수 없는 경로 | → 그대로 통과 → 웹이 자체 404. 도메인은 bohummap.com 고정 |
 
 > 한글 slug는 자동 퍼센트 인코딩되어 이동한다(WebView가 디코딩해 매칭). 정상 동작.
 
