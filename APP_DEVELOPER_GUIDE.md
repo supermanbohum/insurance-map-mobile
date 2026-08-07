@@ -310,7 +310,8 @@ SELECT 정책의 일반적인 모양: "공개 상태(approved/visible)인 것은
 
 > 앱이 딥링크/로그인 정합화(A-001·A-002)를 위해 웹 저장소를 읽기 전용으로 확인한 사실.
 
-- **마이그레이션 0060**까지 적용(0055 find-id, 0056~57 TOP설계사, 0058~59 연봉랭킹, 0060 레거시 배지 리라벨).
+- **마이그레이션 0061**까지 적용(0055 find-id, 0056~57 TOP설계사, 0058~59 연봉랭킹, 0060 레거시 배지 리라벨, **0061 kakao_full_member** = `users.kakao_verified_contact` 추가 + `is_full_member()`가 `provider='kakao' AND kakao_verified_contact IS NOT NULL`도 정식회원으로 인정. 앱 판정 로직 영향 없음(웹 위임)).
+- **푸시 파이프라인 웹 완성(2026-08-08)**: `src/lib/push/expo.ts` 발송 코드 신설. ① 문의 도착→즉시 푸시→딥링크 `/partner/branches/{id}/performance` ② 주간 조회 집계 푸시(월 09:00 KST Vercel Cron). 21-08시 발송 금지 적용. → 앱은 이 착지점 라우팅을 resolve.ts에 반영(partner 통과, 이번 수정).
 - **소셜 로그인(카카오/구글) 완전 제거**: 로그인 페이지에 소셜 버튼 없음, `signInWithOAuth` 호출 없음. 회원가입/로그인은 **웹 폼(이메일 인증) 전용**. `/auth/callback`은 이메일 인증에만 사용(앱은 WebView 내 정상 처리).
 - **신규 라우트 축**: `/top-designer`(+`/[id]`,`/apply`), `/salary-ranking`(+`/[year]`,`/hall-of-fame`,`/detail/[id]`,`/apply`), `/find-id`, `/reset-password`, `/delete-account`. 설계사 프로필은 `/planner-market/[plannerId]`(구 `/designer` 없음), 채팅은 단일 `/chat`.
 

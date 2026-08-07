@@ -266,6 +266,8 @@ async function shareProfile(url, title) {
 | `boheommap://salary-ranking[/...]` | `/salary-ranking`(+`/[year]`,`/hall-of-fame`,`/detail/[id]`,`/apply`) | 연봉 랭킹 |
 | `boheommap://region/{sido}[/{sigungu}]` | `/region/[sido]`(+`/[sigungu]`) | 지역 |
 | `boheommap://my` / `boheommap://planner-market/notifications` | `/my` / `/planner-market/notifications` | 마이/알림 |
+| `boheommap://partner/branches/{branchId}/performance` | `/partner/branches/[branchId]/performance` | 파트너 성과(문의 도착 푸시 착지점) |
+| `boheommap://partner/...` / `boheommap://admin/...` | `/partner/*` / `/admin/*` | 파트너센터/관리자(로그인 게이트) |
 | `boheommap://auth-callback` | — | OAuth 복귀 전용(딥링크에서 무시) |
 
 **구경로 매핑/폴백 (404 방지)** — `resolve.ts`가 자동 처리

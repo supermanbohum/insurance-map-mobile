@@ -28,13 +28,17 @@ const APP_SCHEME = 'boheommap:';
 const IGNORED_SCHEME_HOSTS = new Set(['auth-callback']);
 const ALLOWED_WEB_HOSTS = new Set([APP_HOST, `www.${APP_HOST}`]);
 
-/** 실제로 존재하는 최상위 라우트(딥링크 통과 허용). */
+/**
+ * 실제로 존재하는 최상위 라우트(딥링크 통과 허용).
+ * ⚠️ 웹이 최상위 세그먼트를 추가하면 여기에도 넣어야 한다(안 넣으면 홈 폴백됨).
+ * 'partner' = 파트너센터(예: 푸시 착지점 /partner/branches/{id}/performance — 문의 도착 알림).
+ */
 const KNOWN_TOP = new Set([
   'branch', 'ga', 'planner-market', 'post', 'board', 'chat',
   'top-designer', 'salary-ranking', 'region', 'my', 'search', 'map',
   'community', 'popular', 'contact', 'find-id', 'reset-password',
   'delete-account', 'privacy', 'terms', 'refund-policy', 'login',
-  'signup', 'write', 'top-register',
+  'signup', 'write', 'top-register', 'partner', 'admin',
 ]);
 
 /** 준비 중(스텁) - 딥링크 대상에서 제외하고 홈으로 폴백. */

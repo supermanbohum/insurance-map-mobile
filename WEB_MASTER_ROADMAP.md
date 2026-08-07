@@ -41,6 +41,8 @@ Phase 0 + Phase 1 완료(main 반영). 하이브리드(WebView + 네이티브 �
 | `/salary-ranking`(+`/{year}`,`/hall-of-fame`,`/detail/{id}`) | 연봉 랭킹 |
 | `/region/{sido}`(+`/{sigungu}`) | 지역 |
 | `/my`, `/planner-market/notifications` | 마이/알림 |
+| `/partner/branches/{branchId}/performance` | 파트너 성과 — **문의 도착 푸시 착지점** |
+| `/partner/*`, `/admin/*` | 파트너센터/관리자(로그인 게이트) |
 | `/auth/callback` | OAuth 복귀(앱이 별도 처리, 딥링크 무시) |
 
 > 구경로(`/designer`,`/chat/{id}`,`/notice`,`/recruiting`,`/ads`)와 미지/스텁 경로는 앱 `resolve.ts`가 신경로 매핑 또는 홈으로 안전 폴백(404 방지). 웹이 라우트를 추가/변경하면 이 표 + 앱 `resolve.ts`의 `KNOWN_TOP`를 갱신.
