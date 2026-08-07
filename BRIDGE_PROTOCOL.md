@@ -251,17 +251,34 @@ async function shareProfile(url, title) {
 
 ## 5. 딥링크 경로 계약 (Deeplink Routes)
 
-앱 → 웹 `deeplink`의 `path`, 그리고 App/Universal Links가 매핑하는 경로. **웹의 URL 구조와 1:1로 일치해야 한다.** 웹 URL이 바뀌면 이 표를 함께 갱신한다.
+앱 → 웹 `deeplink`의 `path`, 그리고 App/Universal Links가 매핑하는 경로. **실제 웹 라우트(2026-08-07 web `src/app/(main)` 직접 확인)와 1:1 일치**해야 한다. 정합화 로직은 `src/features/deeplink/resolve.ts`(순수 함수, 단위테스트). 웹 라우트가 바뀌면 이 표와 `resolve.ts`의 `KNOWN_TOP`를 함께 갱신한다.
 
-| 딥링크 스킴 | Universal Link | 웹 경로 | 설명 |
-|---|---|---|---|
-| `boheommap://designer/{id}` | `https://bohummap.com/designer/{id}` | 설계사 프로필 | 공유/QR/알림 대상 |
-| `boheommap://branch/{id}` | `.../branch/{id}` | 지점 상세 | |
-| `boheommap://ga/{id}` | `.../ga/{id}` | GA 상세 | |
-| `boheommap://chat/{roomId}` | `.../chat/{roomId}` | 채팅방 | 푸시 탭 진입 |
-| `boheommap://recruiting/{id}` | `.../recruiting/{id}` | 리크루팅 | |
-| `boheommap://notice/{id}` | `.../notice/{id}` | 공지 | |
-| `boheommap://auth-callback` | — | (OAuth 복귀 전용) | 이미 구현됨 |
+**실제 라우트 (딥링크 통과)**
+| 딥링크 | 웹 경로 | 설명 |
+|---|---|---|
+| `boheommap://branch/{slug}` | `/branch/[slug]` | 지점 상세 (※ id 아님, **slug**) |
+| `boheommap://ga/{slug}` | `/ga/[slug]` | GA 상세 |
+| `boheommap://planner-market/{plannerId}` | `/planner-market/[plannerId]` | 설계사 프로필(설계사마켓) |
+| `boheommap://post/{id}` | `/post/[id]` | 커뮤니티 글 |
+| `boheommap://board/{category}` | `/board/[category]` | 게시판(공지=`/board/notice`) |
+| `boheommap://chat` | `/chat` | **단일 글로벌 룸(roomId 없음)** |
+| `boheommap://top-designer[/{id}]` | `/top-designer`, `/top-designer/[id]` | TOP 설계사 |
+| `boheommap://salary-ranking[/...]` | `/salary-ranking`(+`/[year]`,`/hall-of-fame`,`/detail/[id]`,`/apply`) | 연봉 랭킹 |
+| `boheommap://region/{sido}[/{sigungu}]` | `/region/[sido]`(+`/[sigungu]`) | 지역 |
+| `boheommap://my` / `boheommap://planner-market/notifications` | `/my` / `/planner-market/notifications` | 마이/알림 |
+| `boheommap://auth-callback` | — | OAuth 복귀 전용(딥링크에서 무시) |
+
+**구경로 매핑/폴백 (404 방지)** — `resolve.ts`가 자동 처리
+| 들어온 경로 | 처리 |
+|---|---|
+| `designer/{id}` | → `/planner-market/{id}` |
+| `chat/{anything}` | → `/chat` |
+| `notice(/{id})` | → `/board/notice` |
+| `recruiting/*`, `ads/*` | → `/` (홈) |
+| 스텁 `jobs`,`events`,`best`(준비 중) | → `/` (홈) |
+| 알 수 없는 경로 | → `/` (홈, 절대 404 금지) |
+
+> 한글 slug는 자동 퍼센트 인코딩되어 이동한다(WebView가 디코딩해 매칭). 정상 동작.
 
 ---
 
@@ -271,12 +288,13 @@ async function shareProfile(url, title) {
 
 ```ts
 interface PushData {
-  kind: 'chat' | 'recruiting' | 'profile-view' | 'ad' | 'branch' | 'notice';
-  path: string;          // 예: '/chat/abc123' → boheommap://chat/abc123 으로 변환
+  kind: 'chat' | 'profile-view' | 'branch' | 'ga' | 'post' | 'salary-ranking' | 'notice';
+  path: string;          // 실제 웹 라우트여야 함. 예: '/planner-market/42', '/chat', '/branch/{slug}'
   id?: string;
   badge?: number;        // 앱 아이콘 뱃지에 반영할 값(선택)
 }
 ```
+> `path`는 **실제 라우트**로 보내는 것을 권장한다. 앱은 `resolve.ts`로 구경로/미지경로를 안전 폴백하지만, 정확한 경로를 보내면 그대로 이동한다. 채팅은 단일 룸이므로 항상 `/chat`.
 
 Expo Push 메시지 예시(서버 → Expo):
 ```json
@@ -286,9 +304,10 @@ Expo Push 메시지 예시(서버 → Expo):
   "body": "홍길동 설계사님이 메시지를 보냈습니다.",
   "sound": "default",
   "badge": 3,
-  "data": { "kind": "chat", "path": "/chat/abc123", "id": "abc123" }
+  "data": { "kind": "chat", "path": "/chat" }
 }
 ```
+설계사 프로필 조회 알림 예시: `"data": { "kind": "profile-view", "path": "/planner-market/42", "id": "42" }`
 
 ---
 

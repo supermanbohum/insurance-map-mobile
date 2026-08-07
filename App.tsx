@@ -13,7 +13,7 @@ import { buildBridgeSetupScript } from './src/bridge/injected';
 import { PROTOCOL_VERSION } from './src/bridge/protocol';
 import { useBridge } from './src/bridge/useBridge';
 import { useDeepLinks } from './src/features/deeplink/useDeepLinks';
-import type { ResolvedDeepLink } from './src/features/deeplink/resolve';
+import { resolvePath, type ResolvedDeepLink } from './src/features/deeplink/resolve';
 import { useAppLock } from './src/features/biometric/useAppLock';
 import { usePush } from './src/features/push/usePush';
 import { runGoogleAuthSession } from './src/features/auth/oauth';
@@ -118,11 +118,10 @@ function MainScreen() {
 
   useDeepLinks(handleDeepLink);
 
-  // 푸시 알림: 알림 탭 → 딥링크 경로로 이동(딥링크 로직 재사용).
+  // 푸시 알림: 알림 탭 → 실제 라우트로 매핑(구경로/미지경로 안전 폴백) 후 이동.
   const handleNotificationPath = useCallback(
     (path: string) => {
-      const normalized = path.startsWith('/') ? path : `/${path}`;
-      handleDeepLink({ path: normalized, webUrl: `${APP_URL}${normalized}` });
+      handleDeepLink(resolvePath(path));
     },
     [handleDeepLink]
   );

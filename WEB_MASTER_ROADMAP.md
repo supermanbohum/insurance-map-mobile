@@ -27,26 +27,33 @@ Phase 0 + Phase 1 완료(main 반영). 하이브리드(WebView + 네이티브 �
 | W7 | 딥링크 경로 안정성 | 상시 | `/designer|branch|ga|chat|recruiting|notice/{id}` 변경 시 앱에 공유 |
 | W8 | 푸시 발송 트리거 | 후속 | 채팅/리크루팅/열람알림 이벤트 → Expo Push(`data.path` 포함) |
 
-## 3. 딥링크 경로 계약 (웹 URL과 1:1)
+## 3. 딥링크 경로 계약 (실제 웹 라우트 기준, 2026-08-07 확인)
 
 | 경로 | 화면 |
 |---|---|
-| `/designer/{id}` | 설계사 프로필 |
-| `/branch/{id}` | 지점 상세 |
-| `/ga/{id}` | GA 상세 |
-| `/chat/{roomId}` | 채팅방(푸시 진입) |
-| `/recruiting/{id}` | 리크루팅 |
-| `/notice/{id}` | 공지 |
+| `/branch/{slug}` | 지점 상세 (id 아님, **slug**) |
+| `/ga/{slug}` | GA 상세 |
+| `/planner-market/{plannerId}` | 설계사 프로필(설계사마켓) |
+| `/post/{id}` | 커뮤니티 글 |
+| `/board/{category}` | 게시판(공지=`/board/notice`) |
+| `/chat` | 채팅 — **단일 글로벌 룸(roomId 없음)** |
+| `/top-designer`(+`/{id}`) | TOP 설계사 |
+| `/salary-ranking`(+`/{year}`,`/hall-of-fame`,`/detail/{id}`) | 연봉 랭킹 |
+| `/region/{sido}`(+`/{sigungu}`) | 지역 |
+| `/my`, `/planner-market/notifications` | 마이/알림 |
 | `/auth/callback` | OAuth 복귀(앱이 별도 처리, 딥링크 무시) |
+
+> 구경로(`/designer`,`/chat/{id}`,`/notice`,`/recruiting`,`/ads`)와 미지/스텁 경로는 앱 `resolve.ts`가 신경로 매핑 또는 홈으로 안전 폴백(404 방지). 웹이 라우트를 추가/변경하면 이 표 + 앱 `resolve.ts`의 `KNOWN_TOP`를 갱신.
 
 ## 4. 푸시 페이로드 계약
 
-서버 → Expo Push 메시지의 `data`:
+서버 → Expo Push 메시지의 `data`(**실제 라우트로 보낼 것**):
 ```json
-{ "kind": "chat|recruiting|profile-view|ad|branch|notice", "path": "/chat/abc123", "id": "abc123", "badge": 3 }
+{ "kind": "chat|profile-view|branch|ga|post|salary-ranking", "path": "/planner-market/42", "id": "42", "badge": 3 }
 ```
-- 앱은 알림 탭 시 `data.path`를 딥링크로 변환해 해당 화면으로 이동.
+- 앱은 알림 탭 시 `data.path`를 실제 라우트로 매핑해 이동. 채팅은 항상 `/chat`.
 - `badge`(선택)는 앱 아이콘 뱃지에 반영 가능.
 
 ## 5. 변경 이력
 - 2026-08-04: 최초 작성(Phase 1 완료 + Play 출시 준비 시점). 앱↔웹 계약/요청 정리.
+- 2026-08-07: 딥링크/푸시 경로 계약을 실제 웹 라우트로 정합화(A-002). `/designer|chat/{id}|notice|recruiting|ads` → 신경로/폴백.
