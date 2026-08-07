@@ -18,6 +18,7 @@
     "android": {
       "package": "com.bohummap.app",
       "versionCode": 5,
+      "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
           "action": "VIEW",

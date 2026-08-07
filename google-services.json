@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "445327057877",
+    "project_id": "bohummap-68687",
+    "storage_bucket": "bohummap-68687.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:445327057877:android:3f215eba546e6ec1b5935c",
+        "android_client_info": {
+          "package_name": "com.bohummap.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwXen5lKONK4jDaQjcTReqPmc3XvPwa2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
