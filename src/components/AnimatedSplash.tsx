@@ -2,79 +2,82 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 /**
- * 브랜드 스플래시 (A-012 이중 스플래시/타일경계 해결).
- * - 네이티브 스플래시(expo-splash-screen)는 로고 없이 **단색 파랑**만 → 겹침(이중 로고) 제거.
- * - JS 스플래시는 같은 단색 파랑 위에 **흰 한반도(투명 배경 에셋)**를 애니메이션 → 파란 사각형
- *   타일 경계 소멸(오너 지적 #2/#4). 배경/색은 네이티브와 정확히 일치.
- * - 시퀀스: 흰 한반도 등장 → "대한민국 보험인의 지도 / 70만 보험인의 선택"(함께) → "보험맵".
- * ⚠️ 최종 애니메이션/색/에셋은 디자인 스펙(D-024) 확정 시 교체. 현재는 구조 결함 해결 + 임시 톤.
+ * 브랜드 스플래시 — SPEC-024(D-024) 구현.
+ * 원칙: ① 로고 무단절 — 실루엣은 네이티브 스플래시부터 떠 있고 JS에서 **다시 fade-in 하지 않는다**
+ *       (opacity 1 고정, 위치·크기 네이티브와 동일). ② 같은 자리 crossfade 금지 — 워드마크/태그라인은
+ *       각자 자리에서 220ms 스태거로 순차 등장만 한다(반투명 겹침 순간 제거).
+ * 배경 #2472EC 단색(런처 아이콘 배경과 동일 → 아이콘 탭→스플래시 연속). 전부 opacity·transform.
  */
 
-// 네이티브 스플래시 backgroundColor(app.json #2E80F5)와 **동일**해야 핸드오프가 안 보인다.
-const BG = '#2E80F5';
+const BG = '#2472EC'; // app.json splash.backgroundColor / adaptiveIcon.backgroundColor와 동일
+const EASE = Easing.bezier(0.16, 1, 0.3, 1);
 
 export function AnimatedSplash({ visible, onHidden }: { visible: boolean; onHidden?: () => void }) {
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.9)).current;
-  const logoTranslateY = useRef(new Animated.Value(10)).current;
-  const taglinesOpacity = useRef(new Animated.Value(0)).current;
-  const wordmarkOpacity = useRef(new Animated.Value(0)).current;
-  const wordmarkScale = useRef(new Animated.Value(0.92)).current;
+  const wordOpacity = useRef(new Animated.Value(0)).current;
+  const wordTranslateY = useRef(new Animated.Value(14)).current;
+  const tagOpacity = useRef(new Animated.Value(0)).current;
+  const tagTranslateY = useRef(new Animated.Value(10)).current;
   const overlayOpacity = useRef(new Animated.Value(1)).current;
+  const overlayScale = useRef(new Animated.Value(1)).current;
   const hasFadedOut = useRef(false);
 
+  // 실루엣은 정적(네이티브에서 이어받음). 워드마크(200~650) → 태그라인(420~870, 220ms 스태거)만 등장.
   useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(logoOpacity, { toValue: 1, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(logoScale, { toValue: 1, duration: 680, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(logoTranslateY, { toValue: 0, duration: 680, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    Animated.parallel([
+      Animated.sequence([
+        Animated.delay(200),
+        Animated.parallel([
+          Animated.timing(wordOpacity, { toValue: 1, duration: 450, easing: EASE, useNativeDriver: true }),
+          Animated.timing(wordTranslateY, { toValue: 0, duration: 450, easing: EASE, useNativeDriver: true }),
+        ]),
       ]),
-      Animated.timing(taglinesOpacity, { toValue: 1, duration: 460, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      Animated.delay(700),
-      Animated.parallel([
-        Animated.timing(taglinesOpacity, { toValue: 0, duration: 360, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-        Animated.timing(wordmarkOpacity, { toValue: 1, duration: 480, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(wordmarkScale, { toValue: 1, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.sequence([
+        Animated.delay(420),
+        Animated.parallel([
+          Animated.timing(tagOpacity, { toValue: 0.85, duration: 450, easing: EASE, useNativeDriver: true }),
+          Animated.timing(tagTranslateY, { toValue: 0, duration: 450, easing: EASE, useNativeDriver: true }),
+        ]),
       ]),
     ]).start();
-  }, [logoOpacity, logoScale, logoTranslateY, taglinesOpacity, wordmarkOpacity, wordmarkScale]);
+  }, [wordOpacity, wordTranslateY, tagOpacity, tagTranslateY]);
 
+  // 앱 준비(visible=false) 시 전체 컨테이너 페이드아웃 + 살짝 확대(1→1.02)로 WebView에 전환.
   useEffect(() => {
     if (visible || hasFadedOut.current) return;
     hasFadedOut.current = true;
-    Animated.timing(overlayOpacity, {
-      toValue: 0,
-      duration: 420,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
+    Animated.parallel([
+      Animated.timing(overlayOpacity, { toValue: 0, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.timing(overlayScale, { toValue: 1.02, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+    ]).start(({ finished }) => {
       if (finished) onHidden?.();
     });
-  }, [visible, overlayOpacity, onHidden]);
+  }, [visible, overlayOpacity, overlayScale, onHidden]);
 
   return (
-    <Animated.View pointerEvents={visible ? 'auto' : 'none'} style={[styles.fill, { opacity: overlayOpacity }]}>
+    <Animated.View
+      pointerEvents={visible ? 'auto' : 'none'}
+      style={[styles.fill, { opacity: overlayOpacity, transform: [{ scale: overlayScale }] }]}
+    >
+      {/* 실루엣: 화면 중앙(네이티브와 동일 위치·크기). 애니메이션 없음. */}
       <View style={styles.center}>
         <Animated.Image
-          source={require('../../assets/android-icon-foreground.png')}
+          source={require('../../assets/splash-icon.png')}
           resizeMode="contain"
-          style={[
-            styles.logo,
-            { opacity: logoOpacity, transform: [{ scale: logoScale }, { translateY: logoTranslateY }] },
-          ]}
+          style={styles.logo}
         />
-        <View style={styles.midZone}>
-          <Animated.View style={[styles.midItem, { opacity: taglinesOpacity }]}>
-            <Text style={styles.tagline}>대한민국 보험인의 지도</Text>
-            <Text style={styles.tagline}>70만 보험인의 선택</Text>
-          </Animated.View>
-          <Animated.Text
-            style={[styles.wordmark, { opacity: wordmarkOpacity, transform: [{ scale: wordmarkScale }] }]}
-          >
-            보험맵
-          </Animated.Text>
-        </View>
+      </View>
+
+      {/* 워드마크·태그라인: 중앙 아래에 절대 배치(실루엣 중심 위치를 흔들지 않음). */}
+      <View style={styles.textBlock} pointerEvents="none">
+        <Animated.Text
+          style={[styles.wordmark, { opacity: wordOpacity, transform: [{ translateY: wordTranslateY }] }]}
+        >
+          보험맵
+        </Animated.Text>
+        <Animated.View style={{ opacity: tagOpacity, transform: [{ translateY: tagTranslateY }] }}>
+          <Text style={styles.tagline}>대한민국 보험인의 지도</Text>
+          <Text style={styles.tagline}>70만 보험인의 선택</Text>
+        </Animated.View>
       </View>
     </Animated.View>
   );
@@ -87,7 +90,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: BG, // 네이티브 스플래시와 동일 단색
+    backgroundColor: BG,
     zIndex: 10,
   },
   center: {
@@ -96,34 +99,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    width: 340,
-    height: 340,
+    width: 120,
+    height: 120,
   },
-  midZone: {
-    marginTop: 8,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  midItem: {
+  // 실루엣(화면 중앙) 아래 24dp 지점부터 텍스트. top 50% + 실루엣 하단 여유(72).
+  textBlock: {
     position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    marginTop: 72,
     alignItems: 'center',
-  },
-  tagline: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.95)',
-    letterSpacing: 0.3,
-    lineHeight: 22,
   },
   wordmark: {
-    position: 'absolute',
-    fontSize: 40,
+    fontSize: 28,
     fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: 1,
-    textShadowColor: 'rgba(0,0,0,0.18)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    letterSpacing: 0.5,
+  },
+  tagline: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 19,
   },
 });
