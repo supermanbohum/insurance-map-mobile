@@ -1,7 +1,8 @@
 # 보험맵 APP 가이드북 (CTO 온보딩)
 
 > 대상: 보험맵 프로젝트의 **CTO 역할 Claude**. 이 문서 하나로 모바일 앱 전체를 파악하도록 만든 **진입점**이다.
-> 작성/기준: 2026-08-06 · 최신 커밋 `5a03511` · versionCode 5 (Play 알파 검토 중)
+> 작성/기준: 2026-08-07 · versionCode 5 (Play 알파) · 최근: A-001(Google OAuth 비활성화)·A-002(딥링크 실경로 정합화) 반영
+> 지휘: 오너→CTO Office(세션간 채널로 `[지시ID]` 하달)→앱/웹 담당. 큰/되돌리기 어려운 변경은 오너 확인.
 > 원칙 요약: **웹은 절대 수정하지 않는다. 앱(WebView 셸 + 네이티브)만 다룬다.**
 
 ---
@@ -103,20 +104,21 @@ src/
 **완료 (main 반영)**
 | 영역 | 상태 |
 |---|---|
-| WebView 셸 + 세션유지 + 구글 OAuth(Custom Tab) | ✅ |
+| WebView 셸 + 세션유지 | ✅ |
 | Bridge 기반 + ready/capabilities 핸드셰이크 | ✅ (Phase 0) |
-| 딥링크(스킴 + 유니버설링크 앱측) | ✅ |
+| 딥링크 — **실제 웹 라우트 정합화(A-002)**: 구경로 매핑/미지경로 홈폴백 | ✅ |
 | Native Share / 생체인증 앱잠금 / QR 스캐너 | ✅ |
 | 앱 UX: 로딩바·에러/재시도·인앱토스트·햅틱 | ✅ |
-| Push(토큰→웹, 알림탭→딥링크, 뱃지) | ✅ |
+| Push(토큰→웹, 알림탭→실경로 매핑 딥링크, 뱃지) | ✅ |
 | 오프라인 시 WebView 유지(폼 데이터 손실 방지) | ✅ |
 | iOS 뒤로/앞으로 스와이프 제스처 | ✅ |
 | **V2: 프리미엄 스플래시(로고→태그라인→보험맵)** | ✅ |
 | **V2: 스카이블루 아이콘(검정 matte 제거·불투명)** | ✅ |
+| **로그인: 웹 폼(이메일 인증) 전용 — Google OAuth 우회 비활성화(A-001)** | ✅ |
 
-**V2 나머지 = 대부분 웹** (로그인 개선/열람 팝업/메뉴명/파트너스/TOP설계사 메뉴 등은 WebView 자동 반영). 앱측 남은 것: 간편로그인(Google) 제거(웹이 내린 뒤 앱 OAuth 코드 정리).
+**V2 나머지 = 대부분 웹** (로그인 개선/열람 팝업/메뉴명/파트너스/TOP설계사 메뉴 등은 WebView 자동 반영). 앱측 V2 작업 완료(스플래시·아이콘·A-001·A-002).
 
-**V3 = 전부 웹** (TOP설계사 인증/연봉랭킹/명예전당/공식인증/OCR). 앱은 표시만.
+**V3 = 전부 웹** (TOP설계사 인증/연봉랭킹/명예전당/공식인증/OCR). 앱은 표시만. 웹 최신: 마이그레이션 **0060**, TOP설계사(`/top-designer`)·연봉랭킹(`/salary-ranking`) 라우트 신설됨 → 딥링크 지원 반영 완료(A-002).
 
 > 로드맵 상세: [APP_FEATURE_ROADMAP.md](APP_FEATURE_ROADMAP.md) · 아이디어풀: [INSURANCE_APP_IDEAS.md](INSURANCE_APP_IDEAS.md)
 
@@ -152,8 +154,8 @@ src/
 | 항목 | 내용 | 담당 |
 |---|---|---|
 | **iOS 아이콘 원본** | 현재 icon.png는 사용자가 준 파일의 검정 matte를 제거해 full-bleed 불투명으로 정리함. 원본이 검정배경 export였음. iOS는 정상 동작하나, 더 완벽히 하려면 처음부터 full-bleed 원본 권장 | 앱 |
-| **간편로그인(Google) 제거** | 웹이 Google 로그인 내린 뒤 앱의 OAuth 우회 코드(oauth.ts/navigation.ts/App.tsx) 정리. 순서 주의(웹 먼저) | 앱+웹 |
-| **Privacy Policy URL** | Play 필수(민감권한). 웹 `/privacy` 필요 | 웹 |
+| ~~간편로그인(Google) 제거~~ | **완료(A-001, 2026-08-07)** — 웹 소셜로그인 제거 확인 후 앱 OAuth 우회 비활성화(휴면 코드로 보존) | ✅ |
+| **Privacy Policy URL** | Play 필수(민감권한). 웹 `/privacy` 라우트는 존재(`/(main)/privacy`) → URL 연결만 확인 | 웹 |
 | **UGC 모더레이션** | 채팅/프로필 신고·차단·약관 — Play 정책 | 웹 |
 | **FCM 키** | 실제 푸시 발송에 EAS credentials 등록 필요 | 오너 |
 | **유니버설 링크 `.well-known`** | assetlinks.json / apple-app-site-association 호스팅 | 웹 |

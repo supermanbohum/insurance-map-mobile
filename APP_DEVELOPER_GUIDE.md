@@ -300,8 +300,18 @@ SELECT 정책의 일반적인 모양: "공개 상태(approved/visible)인 것은
 5. **`.well-known/assetlinks.json` + `apple-app-site-association` 정적 호스팅**(유니버설/앱 링크)
 6. **`/privacy` 개인정보처리방침 페이지**(Play 출시 필수)
 
-**딥링크 경로 계약**: 웹 URL 구조와 1:1. `/designer/{id}`, `/branch/{id}`, `/ga/{id}`, `/chat/{roomId}`, `/recruiting/{id}`, `/notice/{id}`. 웹 URL 변경 시 공유 필요.
+**딥링크 경로 계약(2026-08-07 A-002 정합화)**: 실제 웹 라우트 기준 — `/branch/{slug}`, `/ga/{slug}`, `/planner-market/{plannerId}`, `/post/{id}`, `/board/{category}`, `/chat`(단일룸), `/top-designer`, `/salary-ranking`, `/region/{sido}`. 구경로(`/designer`,`/chat/{id}`,`/notice`,`/recruiting`,`/ads`)·미지경로는 앱 `resolve.ts`가 신경로 매핑/홈 폴백(404 방지). 상세: [BRIDGE_PROTOCOL.md](BRIDGE_PROTOCOL.md) §5.
 
-**푸시 페이로드**: 서버→Expo Push의 `data`에 `{ path: '/chat/{id}', ... }` 포함 → 앱이 알림 탭 시 해당 경로로 딥링크.
+**푸시 페이로드**: 서버→Expo Push의 `data`에 **실제 라우트** `path` 포함(예: `/planner-market/42`, `/chat`).
+
+---
+
+## 부록 B. 웹 최신 상태 (2026-08-07 앱팀 확인)
+
+> 앱이 딥링크/로그인 정합화(A-001·A-002)를 위해 웹 저장소를 읽기 전용으로 확인한 사실.
+
+- **마이그레이션 0060**까지 적용(0055 find-id, 0056~57 TOP설계사, 0058~59 연봉랭킹, 0060 레거시 배지 리라벨).
+- **소셜 로그인(카카오/구글) 완전 제거**: 로그인 페이지에 소셜 버튼 없음, `signInWithOAuth` 호출 없음. 회원가입/로그인은 **웹 폼(이메일 인증) 전용**. `/auth/callback`은 이메일 인증에만 사용(앱은 WebView 내 정상 처리).
+- **신규 라우트 축**: `/top-designer`(+`/[id]`,`/apply`), `/salary-ranking`(+`/[year]`,`/hall-of-fame`,`/detail/[id]`,`/apply`), `/find-id`, `/reset-password`, `/delete-account`. 설계사 프로필은 `/planner-market/[plannerId]`(구 `/designer` 없음), 채팅은 단일 `/chat`.
 
 **출시 상태**: Play 출시 준비는 [PLAY_STORE_RELEASE.md](PLAY_STORE_RELEASE.md) 참조. 코드/설정 완료, 남은 블로커는 Privacy Policy·Data Safety·리스팅 에셋·FCM 키.
