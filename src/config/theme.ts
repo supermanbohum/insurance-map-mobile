@@ -4,10 +4,13 @@
  * 하드코딩된 색을 이 토큰으로 점진 교체한다.
  */
 export const colors = {
-  primary: '#152D70', // 브랜드 네이비 (스플래시/아이콘 배경과 동일)
-  primaryPressed: '#0E1F52',
-  primaryTint: '#2A47A0',
-  glow: '#4C7CFF',
+  primary: '#2472EC', // 브랜드 블루 (스플래시/아이콘 배경·런처 아이콘과 동일 → 전 화면 색 연속)
+  primaryPressed: '#1B57D9', // primary 눌림(동일 색상 10% 어둡게)
+  primaryTint: '#5490F0', // ※미사용/잠정 - 디자인 확정값 대기
+  glow: '#4C7CFF', // ※미사용/잠정 - 디자인 확정값 대기
+
+  // 구 브랜드 네이비. primary 자리에서 물러나 텍스트·다크 서피스 용도로 보존(삭제 금지).
+  ink: '#152D70',
 
   bg: '#FFFFFF',
   surface: '#F7F8FA',
