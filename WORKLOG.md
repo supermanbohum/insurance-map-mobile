@@ -62,3 +62,17 @@
 - **결과**: 둘 다 투명픽셀 0(불투명) → iOS 블로커 해소 확인.
 - **검증**: jimp-compact.
 - **관련**: [[feedback_app_workflow_rules]].
+
+### 품질조 QA(앱 셸) + 4팀 공유
+- **무엇**: QA_FINDINGS_APP.md. 모바일웹 빈상태 직접점검(홈/지도/커뮤니티) + 셸 코드리뷰 + 실기기 필요항목 분리. 웹/콘텐츠/디자인/CTO 직접 공유.
+- **왜**: 오너 조편성(품질조=웹+앱), 8/17 전 QA.
+- **결과**: `d8ae0b9`. P0 없음. C1(도메인이탈) 웹에 전달. 딥링크 정합성 resolve.ts 대조 확정.
+- **검증**: Browser pane 모바일뷰포트(375) get_page_text/console. 실기기 항목은 8/10 테스터/스모크 위임.
+- **관련**: PUSH_E2E_CHECKLIST, BUILD_SMOKE_CHECKLIST.
+
+### Alpha 빌드 결정 + Play 경고 판정
+- **무엇**: Alpha에 vc9 대신 HEAD 새 빌드 권고(vc9엔 로컬알림 켜져있음). 재설치/재등록 불필요 확인. Android15/16 대형화면 경고 = 비차단 판정.
+- **왜**: 8/10 테스터 최선 빌드 + 오너 1회 안내. CTO 빌드 실패 대비 질의.
+- **결과**: CTO가 HEAD로 production 빌드 시작. 경고는 orientation portrait+targetSdk36 advisory로 폰 영향 0, 8월말 백로그.
+- **검증**: 커밋순서(db1a1d6가 vc9 이후) 확인. app.json orientation/sdk/google-services 확인.
+- **관련**: [[project_launch_8_17]].
