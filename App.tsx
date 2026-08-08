@@ -5,7 +5,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import NetInfo from '@react-native-community/netinfo';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Location from 'expo-location';
-import WebView, { type WebViewNavigation } from 'react-native-webview';
+import WebView, { type WebViewNavigation, type WebViewMessageEvent } from 'react-native-webview';
 
 import { APP_URL, MAX_SPLASH_MS, MIN_SPLASH_MS } from './src/config/constants';
 import { colors } from './src/config/theme';
@@ -17,6 +17,12 @@ import { resolvePath, type ResolvedDeepLink } from './src/features/deeplink/reso
 import { useAppLock } from './src/features/biometric/useAppLock';
 import { usePush } from './src/features/push/usePush';
 import { scheduleRevisitReminder, cancelRevisitReminder } from './src/features/retention/localReminder';
+import {
+  PERF_DIAGNOSTICS_ENABLED,
+  PERF_PROBE_JS,
+  handlePerfMessage,
+  logAppLoadTiming,
+} from './src/features/diagnostics/perf';
 import { runOAuthAuthSession } from './src/features/auth/oauth';
 import { downloadToGallery } from './src/features/media/download';
 import { isSupabaseAuthorizeUrl, openExternally, shouldOpenExternally } from './src/webview/navigation';
@@ -57,6 +63,15 @@ function MainScreen() {
     onOpenQrScanner: openQrScanner,
   });
 
+  // 성능 프로브 메시지는 브릿지로 넘기기 전에 가로채 로깅(진단 빌드에서만). 그 외는 브릿지 라우터로.
+  const handleMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      if (PERF_DIAGNOSTICS_ENABLED && handlePerfMessage(event.nativeEvent.data)) return;
+      handleWebMessage(event);
+    },
+    [handleWebMessage]
+  );
+
   const handleQrResult = useCallback(
     (value: string) => {
       if (qrReqId !== null) {
@@ -88,6 +103,7 @@ function MainScreen() {
   const hasLoadedOnceRef = useRef(false);
   const pendingDeepLinkRef = useRef<ResolvedDeepLink | null>(null);
   const webLoadingRef = useRef(true);
+  const loadStartAtRef = useRef(Date.now()); // 진단: onLoadStart→onLoadEnd 소요 측정용.
 
   // 딥링크(커스텀 스킴/유니버설 링크)를 받으면 해당 웹 경로로 WebView를 이동시키고,
   // 웹에도 알린다(웹이 SPA 라우팅으로 반응할 수 있도록 - 없어도 이동은 보장됨).
@@ -318,6 +334,7 @@ function MainScreen() {
     webLoadingRef.current = true;
     setWebLoading(true);
     setLoadProgress(0);
+    if (PERF_DIAGNOSTICS_ENABLED) loadStartAtRef.current = Date.now();
   }, []);
 
   const handleLoadProgress = useCallback((event: { nativeEvent: { progress: number } }) => {
@@ -330,6 +347,12 @@ function MainScreen() {
     setWebLoading(false);
     // 로드가 실제로 끝났으면 에러 화면을 자동 해제(onError 오탐으로 고착되는 것 방지).
     setWebError(false);
+
+    // 진단(개발 빌드만): 앱-웹 로드 시간 로깅 + 웹 performance 지표 추출 주입(읽기 전용).
+    if (PERF_DIAGNOSTICS_ENABLED) {
+      logAppLoadTiming('(current)', loadStartAtRef.current, Date.now());
+      webViewRef.current?.injectJavaScript(PERF_PROBE_JS);
+    }
 
     // 브릿지 핸드셰이크: 웹이 "앱 안"임을 인지하고 capabilities에 맞춰 UI를 전환하게 한다.
     sendReady();
@@ -369,7 +392,7 @@ function MainScreen() {
       onError={handleWebError}
       onRenderProcessGone={retryWeb}
       onContentProcessDidTerminate={retryWeb}
-      onMessage={handleWebMessage}
+      onMessage={handleMessage}
       injectedJavaScriptBeforeContentLoaded={BRIDGE_SETUP_JS}
       // 로그인 유지: 쿠키/로컬스토리지를 지우지 않고 재사용.
       sharedCookiesEnabled
