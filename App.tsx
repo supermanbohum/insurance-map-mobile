@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, BackHandler, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
@@ -80,9 +80,6 @@ function MainScreen() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [webLoading, setWebLoading] = useState(true);
   const [webError, setWebError] = useState(false);
-  // 저사양·느린망 대응: 로딩이 오래 끌리면 "불러오는 중" 안내를, 첫 실패는 조용히 1회 자동 재시도.
-  const [slowLoading, setSlowLoading] = useState(false);
-  const autoRetriedRef = useRef(false);
   const [uiStage, setUiStage] = useState<'splash' | 'onboarding' | 'app'>('splash');
   const [splashMounted, setSplashMounted] = useState(true);
   const backPressedOnceRef = useRef(false);
@@ -197,16 +194,6 @@ function MainScreen() {
     return () => sub.remove();
   }, []);
 
-  // 느린 로딩 안내: 로딩이 3초를 넘기면 "불러오는 중" 문구를 띄운다(먹통 오인·이탈 방지).
-  useEffect(() => {
-    if (!webLoading) {
-      setSlowLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => setSlowLoading(true), 3000);
-    return () => clearTimeout(timer);
-  }, [webLoading, webViewKey]);
-
   // 스플래시 최대 노출 시간 - 네트워크가 느려도 일정 시간 뒤엔 강제로 넘어간다.
   useEffect(() => {
     const maxTimer = setTimeout(() => {
@@ -314,16 +301,6 @@ function MainScreen() {
   // 끝난 뒤 발생하는 서브리소스(이미지 등) 오류로는 화면을 덮지 않는다(오탐 방지).
   const handleWebError = useCallback(() => {
     if (!webLoadingRef.current) return;
-    // 느린망/저사양에서 흔한 일시적 실패: 첫 실패는 에러화면 대신 조용히 1회 자동 재시도.
-    if (!autoRetriedRef.current) {
-      autoRetriedRef.current = true;
-      webLoadingRef.current = true;
-      setWebError(false);
-      setWebLoading(true);
-      setLoadProgress(0);
-      setWebViewKey((k) => k + 1);
-      return;
-    }
     webLoadingRef.current = false;
     setWebError(true);
     setWebLoading(false);
@@ -353,8 +330,6 @@ function MainScreen() {
     setWebLoading(false);
     // 로드가 실제로 끝났으면 에러 화면을 자동 해제(onError 오탐으로 고착되는 것 방지).
     setWebError(false);
-    // 성공했으니 다음 실패에 대비해 자동 재시도 기회를 복구한다.
-    autoRetriedRef.current = false;
 
     // 브릿지 핸드셰이크: 웹이 "앱 안"임을 인지하고 capabilities에 맞춰 UI를 전환하게 한다.
     sendReady();
@@ -432,14 +407,6 @@ function MainScreen() {
       <View style={{ height: insets.bottom, backgroundColor: colors.bg }} />
       <LoadingBar progress={loadProgress} visible={webLoading && loadProgress < 1} />
 
-      {/* 느린망/저사양 안내: 스플래시가 내려간 뒤에도 로딩이 3초+ 이어지면 "먹통 아님"을 알린다. */}
-      {uiStage === 'app' && slowLoading && webLoading && !webError && isConnected && (
-        <View style={styles.slowLoading} pointerEvents="none">
-          <Text style={styles.slowLoadingText}>불러오는 중이에요…</Text>
-          <Text style={styles.slowLoadingSub}>잠시만 기다려주세요</Text>
-        </View>
-      )}
-
       {/* 오프라인: WebView를 덮는 오버레이(언마운트 대신). 재연결되면 자동으로 사라진다. */}
       {!isConnected && (
         <View style={styles.offlineOverlay}>
@@ -505,25 +472,5 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: colors.bg,
-  },
-  slowLoading: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 4,
-  },
-  slowLoadingText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textSub,
-  },
-  slowLoadingSub: {
-    marginTop: 6,
-    fontSize: 13,
-    color: colors.textSub,
   },
 });
