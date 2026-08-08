@@ -1,0 +1,64 @@
+# 앱팀 WORKLOG
+
+> 전 팀 상시 지시. 작업 단위마다 **무엇 / 왜 / 결과 / 검증 / 관련** 형식으로 append.
+> 담당: 모바일 앱(WebView 셸). 세션 894920e4.
+
+---
+
+## 2026-08-08
+
+### A-014 P0 — 로딩 UX 롤백
+- **무엇**: vc8의 느린로딩 안내 오버레이 + onError 자동재시도 제거(vc7 동작 복귀).
+- **왜**: 실기기에서 안내문이 콘텐츠 위 겹침 + 로드 후 안 사라짐 + 자동재시도가 화면전환 렉 유발.
+- **결과**: `00e6c49`. vc9에서 오너 "렉 없음" 확인 → 원인=자동재시도로 확정.
+- **검증**: tsc 통과. 오너 실기기(vc9) 렉 해소 확인.
+- **관련**: [[feedback_no_unverified_overlay_features]], PUSH_E2E 무관.
+
+### B1 — 브랜드색 #2472EC 전면 통일
+- **무엇**: theme.primary #152D70→#2472EC, pressed #1B57D9, 구네이비→colors.ink, 알림색 통일. primaryTint #5490F0(흰배경 텍스트 금지, AA 미달).
+- **왜**: 스플래시(#2472EC)→네이티브 크롬(#152D70) 색 튐(오너 민감 지점).
+- **결과**: `ffbcb48`, `169f64b`. APP_UI_UX_GUIDE §2 갱신.
+- **검증**: tsc. 사용처 8곳 grep 확인(부작용 없음, cosmetic).
+- **관련**: [[project_brand_color_split]].
+
+### A-015 — 로컬 재방문 알림 비활성화(코드 보존)
+- **무엇**: REVISIT_REMINDER_ENABLED=false. 심야 클램프/문구/구현 보존. 재개조건 주석.
+- **왜**: 발행 실적 0 상태에서 "돌아왔는데 새 글 없음"→알림 권한 해제→FCM 개인화까지 사망하는 비대칭.
+- **결과**: `db1a1d6`. active→cancel 배선 확인(기존 예약도 앱 실행 시 취소).
+- **검증**: tsc.
+- **관련**: 재개조건 = 발행 2주 실적(주기 7일로) 또는 FCM 개인화 가동 시 재검토.
+
+### A-015 ④ — 스플래시 ⓑ 시도 후 revert
+- **무엇**: 실루엣 fade-in ⓑ 구현(c476807) → 되돌림(66779b7).
+- **왜**: "네이티브 로고 제거됨" 전제가 실제 app.json과 불일치(로고 여전히 표시). ⓐ가 스펙 원문 정답. 오너 4번째 확인 요구 회피.
+- **결과**: 스플래시 vc9 상태 그대로 유지. SPEC-024 원문 준수.
+- **검증**: app.json/AnimatedSplash 원복 확인, tsc.
+- **관련**: [[feedback_cto_channel_authority_claims]](틀린 전제 위 지시 검증).
+
+### 렉 진단 계측 + 로드 카운터 (dev-only)
+- **무엇**: perf.ts(웹 performance 추출 주입 + 앱-웹 로드시간 + onLoadStart/End 카운터). __DEV__ 게이트.
+- **왜**: "렉이 앱/웹 어느 탓"을 숫자로. 웹팀 Q1(onLoadEnd 누락 지점 탐지) 제안.
+- **결과**: `2d2e372`, `4329fa4`. vc9 렉 해소로 (A)dev세션 불요 → 코드는 보존(재사용 대비).
+- **검증**: tsc. 사용자 앱 무영향(게이트).
+- **관련**: naver_maps_sdk.js(B7 stray 333KB) 삭제 — 앱 참조 0.
+
+### B3 — App Links well-known 파일
+- **무엇**: web-handoff/well-known/ assetlinks.json + apple-app-site-association + README.
+- **왜**: https 링크가 앱으로 열리게(설치자). 없으면 브라우저로 감.
+- **결과**: `c4dd814`. package 채움, SHA-256/팀ID는 CTO.
+- **검증**: 착지 라우팅 resolve.ts 대조.
+- **관련**: 웹 배포 대기.
+
+### 푸시 E2E 절차서(오너용) + Play 플랜B
+- **무엇**: PUSH_E2E_CHECKLIST.md(A/B/C 콜드·웜), PLAY_LAUNCH_PLANB.md(내부테스트+12명 요청서).
+- **왜**: 오너 직접 검증 + 8/17 대비 병렬 준비.
+- **결과**: `1cc79c6`, `195acd8`.
+- **검증**: 착지값 resolve.ts 대조. 빌드준비 tsc+expo-doctor 20/20.
+- **관련**: [[project_launch_8_17]].
+
+### 아이콘 알파 검증
+- **무엇**: icon.png(1024)·icon-512-store-v2.png jimp 알파검사.
+- **왜**: iOS 아이콘 알파 금지 요건.
+- **결과**: 둘 다 투명픽셀 0(불투명) → iOS 블로커 해소 확인.
+- **검증**: jimp-compact.
+- **관련**: [[feedback_app_workflow_rules]].
