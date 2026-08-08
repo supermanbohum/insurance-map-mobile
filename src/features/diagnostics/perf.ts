@@ -45,6 +45,27 @@ export function logAppLoadTiming(path: string, startedAtMs: number, endedAtMs: n
 }
 
 /**
+ * onLoadStart/onLoadEnd 발생 횟수 카운터. 웹팀 제안(Q1): 짝이 안 맞는 화면 = onLoadEnd 누락
+ * → webLoading이 true로 고착되는 지점을 찾는다. (Next.js 내부 네비게이션은 이 이벤트를 안 건드리므로,
+ *  풀 네비게이션에서만 증가한다 — planner-market PlannerCard 하드 네비 등.)
+ */
+const loadCounts = { start: 0, end: 0 };
+
+export function recordLoadStart(url?: string): void {
+  loadCounts.start += 1;
+  logger.info(`[PERF] loadStart #${loadCounts.start} → ${url || '(url?)'}`);
+}
+
+export function recordLoadEnd(url?: string): void {
+  loadCounts.end += 1;
+  const mismatch = loadCounts.start - loadCounts.end;
+  logger.info(
+    `[PERF] loadEnd #${loadCounts.end} ← ${url || '(url?)'} · start/end=${loadCounts.start}/${loadCounts.end}` +
+      (mismatch !== 0 ? ` ⚠️ 미완료 ${mismatch}건(onLoadEnd 누락 의심)` : '')
+  );
+}
+
+/**
  * 받은 메시지가 성능 프로브면 로깅 후 true(브릿지로 넘기지 않음). 아니면 false.
  */
 export function handlePerfMessage(raw: string): boolean {

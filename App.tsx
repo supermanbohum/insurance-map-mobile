@@ -22,6 +22,8 @@ import {
   PERF_PROBE_JS,
   handlePerfMessage,
   logAppLoadTiming,
+  recordLoadStart,
+  recordLoadEnd,
 } from './src/features/diagnostics/perf';
 import { runOAuthAuthSession } from './src/features/auth/oauth';
 import { downloadToGallery } from './src/features/media/download';
@@ -330,11 +332,14 @@ function MainScreen() {
     setWebViewKey((k) => k + 1);
   }, []);
 
-  const handleLoadStart = useCallback(() => {
+  const handleLoadStart = useCallback((event?: { nativeEvent?: { url?: string } }) => {
     webLoadingRef.current = true;
     setWebLoading(true);
     setLoadProgress(0);
-    if (PERF_DIAGNOSTICS_ENABLED) loadStartAtRef.current = Date.now();
+    if (PERF_DIAGNOSTICS_ENABLED) {
+      loadStartAtRef.current = Date.now();
+      recordLoadStart(event?.nativeEvent?.url);
+    }
   }, []);
 
   const handleLoadProgress = useCallback((event: { nativeEvent: { progress: number } }) => {
@@ -348,8 +353,9 @@ function MainScreen() {
     // 로드가 실제로 끝났으면 에러 화면을 자동 해제(onError 오탐으로 고착되는 것 방지).
     setWebError(false);
 
-    // 진단(개발 빌드만): 앱-웹 로드 시간 로깅 + 웹 performance 지표 추출 주입(읽기 전용).
+    // 진단(개발 빌드만): 로드 카운터(짝 확인) + 앱-웹 로드 시간 + 웹 performance 추출(읽기 전용).
     if (PERF_DIAGNOSTICS_ENABLED) {
+      recordLoadEnd();
       logAppLoadTiming('(current)', loadStartAtRef.current, Date.now());
       webViewRef.current?.injectJavaScript(PERF_PROBE_JS);
     }
