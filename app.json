@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.bohummap.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
@@ -85,6 +85,7 @@
       [
         "expo-location",
         {
+          "locationWhenInUsePermission": "보험맵이 내 주변 GA 지점을 지도에 표시하기 위해 위치 정보를 사용합니다.",
           "locationAlwaysAndWhenInUsePermission": "보험맵이 내 주변 GA 지점을 지도에 표시하기 위해 위치 정보를 사용합니다."
         }
       ],
