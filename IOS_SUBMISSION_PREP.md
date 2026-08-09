@@ -1,0 +1,132 @@
+# 🍎 iOS App Store 제출 준비 패키지
+
+> 팀ID 없이 지금 만들 수 있는 것 전부. 팀ID(오너 $99 가입 후)만 채우면 제출 가능.
+> 확정 전제: 오너 **개인사업자**(사업자번호 699-01-04079, 가운데 "01") → **개인(Individual) 계정 가능, D-U-N-S 불필요.**
+> 관련: [PLAY_STORE_RELEASE.md](PLAY_STORE_RELEASE.md)(안드로이드), [web-handoff/well-known/](web-handoff/well-known/)(AASA).
+> 근거: Apple App Review Guidelines 4.2.3 / 5.1.1 / 3.1.1 (2026-08-09 확인).
+
+---
+
+## 🔴 1. App Review Notes (심사 노트) — 4.2.3 방어의 핵심
+
+> App Store Connect → 앱 버전 → "App Review Information → Notes"에 붙여넣기. **영문 권장**(리뷰어 다수 비한국어).
+> 목적: Apple 4.2.3(WebView 셸 거부)을 **네이티브 기능 목록 + 확인 경로**로 방어 + 5.1.1(ix) 오분류 방어.
+
+```
+[App Review Notes]
+
+Boheommap (보험맵) is a directory, community, and recruiting platform that CONNECTS
+insurance agents (설계사) and General Agencies (GA / insurance agencies) in Korea.
+
+IMPORTANT — Regulatory classification (re: Guideline 5.1.1(ix)):
+This app does NOT sell, broker, underwrite, or provide any insurance products or
+financial services. It is a professional directory + community + recruiting service
+(similar to a B2B networking/jobs directory). No financial transactions occur in the app.
+
+Native functionality (re: Guideline 4.2 — this is not a repackaged website):
+1. Push notifications — permission requested on first launch; used for chat / profile-view /
+   recruiting alerts (server-triggered).
+2. Universal Links — https://bohummap.com/... links open directly in the app
+   (apple-app-site-association hosted on the domain).
+3. Biometric app lock — Face ID / Touch ID to lock the app (Settings → app lock).
+4. Native QR scanner — camera-based QR scan for business cards / profiles.
+5. Native share sheet — share branch/agent profiles via the iOS share sheet.
+6. Haptics — tactile feedback on key interactions.
+7. Location — device GPS to show nearby GA branches on the map ("지도에서 찾기" → my location).
+8. Save-to-Photos — download images into the device photo library.
+9. Native animated splash + offline handling + pull-to-refresh.
+
+How to test:
+- Launch the app → native splash → allow notifications & location when prompted.
+- Tap "지도에서 찾기" (Find on map) → grant location → map shows current position.
+- Open any branch/profile → tap Share → the native iOS share sheet appears.
+- (Biometric lock) Settings → enable app lock → background & reopen → Face ID/Touch ID prompt.
+
+Test account (member features such as chat / registration require sign-in):
+- Email: (오너가 발급)
+- Password: (오너가 발급)
+- Most browsing (search, map, viewing) works without login.
+
+Account deletion (re: 5.1.1(v)): available in-app under account settings (/delete-account).
+Privacy Policy: https://bohummap.com/privacy
+```
+⚠️ **주의**: 유니버설링크(#2)는 **AASA가 웹에 배포돼 있어야 리뷰어가 테스트 가능.** 미배포 상태로 제출하면 그 기능은 시연 불가 → AASA 배포를 iOS 제출 전에 맞춰야 함(팀ID 필요).
+⚠️ 푸시(#1)는 서버 발송이라 리뷰어가 실제 알림을 못 받을 수 있음 → 다른 네이티브 기능(위치·공유·QR·생체·스플래시)으로 4.2를 방어. 이 조합이면 통과 가능성 충분.
+
+---
+
+## 2. App Privacy (애플판 Data Safety) — App Store Connect 입력용
+
+> 구글 Data Safety(PLAY_STORE_RELEASE §3)를 애플 "Privacy Nutrition Label" 양식으로 변환.
+> 공통 원칙: **Tracking = 아니오**(제3자 광고/추적 없음). 대부분 **App Functionality** 목적, 계정 기반이라 **Data Linked to You**.
+
+| Apple 데이터 유형 | 수집 | You와 연결 | 추적 | 목적 |
+|---|---|---|---|---|
+| Contact Info — Name | 예 | 예 | 아니오 | App Functionality (리크루팅/프로필) |
+| Contact Info — Email address | 예 | 예 | 아니오 | App Functionality, 계정 |
+| Contact Info — Phone number | 예 | 예 | 아니오 | App Functionality (GA↔설계사 연락) |
+| Location — Precise Location | 예 | 예 | 아니오 | App Functionality (주변 지점) |
+| Location — Coarse Location | 예 | 예 | 아니오 | App Functionality |
+| User Content — Photos or Videos | 예 | 예 | 아니오 | App Functionality (프로필/지점 업로드) |
+| User Content — Other (채팅 메시지) | 예 | 예 | 아니오 | App Functionality (채팅) |
+| Identifiers — Device ID (푸시 토큰) | 예 | 예 | 아니오 | App Functionality (알림) |
+| Usage Data — Product Interaction (검색/조회) | 예 | 예 | 아니오 | App Functionality (추천/조회수) |
+
+- **수집 안 함**: 금융정보(결제 미연동), 건강, 연락처(주소록 미접근), 검색기록 외 민감정보, 오디오(마이크 차단).
+- **Data Used to Track You: 없음** (제3자 광고/데이터브로커 없음. Expo Push/FCM/APNs는 서비스 제공자=처리자, 추적 아님).
+- **User ID(카카오)**: 카카오 로그인 활성화 시 "User ID" 추가. 구글은 제거됨(신고 안 함).
+
+---
+
+## 3. AASA (apple-app-site-association) — ✅ 템플릿 완성
+
+- 파일: [web-handoff/well-known/apple-app-site-association](web-handoff/well-known/apple-app-site-association)
+- 애플 규격 확인됨: `{ applinks.details[].appID: "TEAMID.com.bohummap.app", paths: ["*"] }`
+- **팀ID만 채우면 됨**(오너 가입 후 확보). 웹이 `https://bohummap.com/.well-known/apple-app-site-association`에 **확장자 없이, application/json, 리다이렉트 없이** 배포.
+- app.json `ios.associatedDomains: ["applinks:bohummap.com"]` 이미 설정됨 ✅.
+
+---
+
+## 4. 앱 카테고리 — **Business (Primary)**
+
+| 후보 | 판정 | 근거 |
+|---|---|---|
+| **Business** ✅ | **채택** | GA·설계사 대상 B2B 디렉터리+리크루팅+커뮤니티. 안드로이드도 Business로 통일(정합). |
+| Finance | ❌ 회피 | **5.1.1(ix) 규제분야 트리거.** 8/7 구글 거부가 정확히 금융 오분류였음. Finance 선택 시 심사자가 규제 검증 요구 가능. |
+| Lifestyle | ❌ | 소비자향 뉘앙스. 우리는 전문가(설계사/GA) 도구라 부적합. |
+| Secondary(선택) | Productivity 또는 미지정 | 필수 아님. 지정 시 Productivity(업무 도구) 정도. |
+
+→ **Primary: Business, Secondary: 미지정(또는 Productivity).** Finance 절대 회피.
+
+---
+
+## 5. iOS 스토어 텍스트 — 안드로이드 점검본 기준(엄격기준 적용)
+
+> Apple은 구글과 달리 **Keywords 필드(100자, 쉼표구분)** 가 별도로 있음. Subtitle(30자)도 있음.
+> 콘텐츠팀 점검 반영본(최상급·구정책 표현 제거)을 기준으로. **최종 문안은 콘텐츠 A/B(푸시 스모크) 확정 후 동기화.**
+
+- **App Name (30자)**: `보험맵 - 보험 GA·설계사 찾기`
+- **Subtitle (30자)**: `전국 GA·지점·설계사 리크루팅`
+- **Keywords (100자, 쉼표구분)**: `보험,GA,보험대리점,설계사,리크루팅,지점,보험이직,설계사구인,보험영업,연봉,TOP설계사,보험채용`
+- **Promotional Text (170자)**: `전국 보험 GA·지점·설계사를 지도에서 찾고, 리크루팅과 커뮤니티까지 한 곳에서. (콘텐츠 A/B 확정 시 교체)`
+- **Description (4000자)**: PLAY_STORE_RELEASE §2.3 수정본 그대로(「대표」 제거·「회원 가입 후」·푸시줄 조건부) + 말미 「※ 보험맵은 보험상품을 판매·중개하지 않습니다」(5.1.1(ix) 방어).
+- **Support URL**: `https://bohummap.com` · **Marketing URL**(선택): `https://bohummap.com`
+- ⚠️ 애플 심사가 더 깐깐 → 최상급/미구현 기능 서술 금지 원칙 안드로이드보다 엄격 적용. 푸시줄은 실기기 수신 확인(§9-5) 게이트.
+
+---
+
+## 6. 프로덕션 빌드 — iOS
+- iOS도 **EAS 클라우드 빌드(맥 불필요)**: `eas build -p ios --profile production` (Apple 계정 로그인 + 팀ID 필요 → 오너/CTO 실행).
+- `ios.buildNumber`는 EAS autoIncrement 또는 app.json에 지정. bundleId `com.bohummap.app` ✅.
+- 안드로이드 AAB(vc7)는 별개로 이미 완료(eas submit은 서비스계정 키 대기, 오너 결정).
+
+---
+
+## 남은 것 = 팀ID 의존 (오너 $99 가입 후)
+```
+1. Apple Team ID 확보              → 2·3 완성
+2. AASA에 팀ID 채워 웹 배포        → 유니버설링크 검증
+3. eas build -p ios production     → IPA
+4. App Store Connect 앱 생성 + 위 1~5 입력 + 심사용 계정 → 제출
+```
+**팀ID 없이 지금 완성된 것**: 심사노트·App Privacy·AASA템플릿·카테고리·스토어텍스트·권한설명문(위치 보강)·아이콘(알파0). → **오너가 가입만 하면 즉시 제출 단계.**

@@ -98,3 +98,10 @@
 - **결과**: `0f92c64`(locationWhenInUsePermission 추가). 판정: 개인계정 가능성 높으나 ①법인이면 조직필수 ②5.1.1(ix) 규제분야 오분류 리스크(안드로이드와 동일) ③4.2 WebView셸(iOS 고유, 중간리스크). 8월말 병렬 가능하나 거부 시 9월.
 - **검증**: developer.apple.com/app-store/review/guidelines WebFetch + WebSearch(계정규정).
 - **관련**: [[project_launch_8_17]]. 미착수=Apple가입·팀ID·AASA배포·App Privacy.
+
+### iOS 제출 준비 패키지 (팀ID 없이 선제작)
+- **무엇**: IOS_SUBMISSION_PREP.md — 심사노트(4.2.3 방어), App Privacy(구글→애플 변환), AASA 확인, 카테고리(Business), iOS 스토어텍스트(Keywords/Subtitle 포함).
+- **왜**: 오너 "24시간 풀근무" 지시 — 대기 말고 팀ID 없이 만들 수 있는 것 전부.
+- **결과**: 커밋 예정. 개인계정 확정(오너 개인사업자 699-01-04079). 팀ID만 채우면 즉시 제출 단계.
+- **검증**: Apple 가이드라인 4.2.3/5.1.1/3.1.1 대조. AASA 규격 확인.
+- **관련**: [[project_launch_8_17]]. 팀ID 의존분만 잔여.
