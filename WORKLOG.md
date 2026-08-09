@@ -105,3 +105,10 @@
 - **결과**: 커밋 예정. 개인계정 확정(오너 개인사업자 699-01-04079). 팀ID만 채우면 즉시 제출 단계.
 - **검증**: Apple 가이드라인 4.2.3/5.1.1/3.1.1 대조. AASA 규격 확인.
 - **관련**: [[project_launch_8_17]]. 팀ID 의존분만 잔여.
+
+### 카카오 로그인 검증 준비 (게이트 ON 대비, 코드 미수정)
+- **무엇**: KAKAO_LOGIN_VERIFY.md — 8단계 체크리스트 + adb logcat 필터(release라 JS로거 조용→Custom Tab 액티비티로 판정) + 실패 시 폴백 패치(A: onNavigationStateChange 반응형 인터셉션, B: originWhitelist, C: setSupportMultipleWindows) 사전작성.
+- **왜**: CTO 지시 — 게이트 ON 후 몇 분 안에 성패 판정+실패 시 즉시 OFF+폴백. 이 흐름은 구글 제거 후 inert, 카카오가 첫 실사용.
+- **결과**: 커밋 예정. 코드 미수정(준비만). 핵심 리스크=Android JS발 nav가 onShouldStartLoad 발화하는지(불확실)→폴백A가 robust.
+- **검증**: App.tsx 현 props 확인(originWhitelist 미설정, setSupportMultipleWindows=false, handleNavigationStateChange는 canGoBack만).
+- **관련**: KAKAO_LOGIN_RESEARCH(iOS 복귀 리스크), 8번(재로그인 계정매칭)=웹/Supabase 문제.
