@@ -89,3 +89,12 @@
 - **왜**: 12명에게 "무엇을 볼지" 줘야 피드백 나옴. CTO 요청.
 - **결과**: `992ca9e`.
 - **관련**: 실기기 항목 A1·A4·A5·A6·A7 커버. 푸시는 별도.
+
+## 2026-08-09
+
+### iOS 출시 가능성 검증 (Apple 문서)
+- **무엇**: Apple App Review Guidelines 직접 확인(4.2.3 최소기능, 5.1.1(ix) 규제분야 법인제출, 3.1.1, 5.1.1(v) 계정삭제) + 개인/조직 계정 규정. iOS 위치 when-in-use 권한 문자열 보강.
+- **왜**: 오너 "iOS 언제 되나" 질문 — 특히 개인계정 가능 여부(구글이 금융오신고로 막았던 건과 동일 리스크인지).
+- **결과**: `0f92c64`(locationWhenInUsePermission 추가). 판정: 개인계정 가능성 높으나 ①법인이면 조직필수 ②5.1.1(ix) 규제분야 오분류 리스크(안드로이드와 동일) ③4.2 WebView셸(iOS 고유, 중간리스크). 8월말 병렬 가능하나 거부 시 9월.
+- **검증**: developer.apple.com/app-store/review/guidelines WebFetch + WebSearch(계정규정).
+- **관련**: [[project_launch_8_17]]. 미착수=Apple가입·팀ID·AASA배포·App Privacy.
