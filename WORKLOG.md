@@ -112,3 +112,10 @@
 - **결과**: 커밋 예정. 코드 미수정(준비만). 핵심 리스크=Android JS발 nav가 onShouldStartLoad 발화하는지(불확실)→폴백A가 robust.
 - **검증**: App.tsx 현 props 확인(originWhitelist 미설정, setSupportMultipleWindows=false, handleNavigationStateChange는 canGoBack만).
 - **관련**: KAKAO_LOGIN_RESEARCH(iOS 복귀 리스크), 8번(재로그인 계정매칭)=웹/Supabase 문제.
+
+### 카카오 로그인 실기기 통과 기록 + 정합 확인
+- **무엇**: KAKAO_LOGIN_VERIFY.md에 통과 결과 확정 기록(관문2 Custom Tab·5~6 가입·8 재로그인·DB). 함수명 정합 확인(HEAD=runOAuthAuthSession, 조치 불요). vc8 빌드준비 tsc green 재확인.
+- **왜**: CTO 마감회의 — 통과 경로 문서화(#2), 함수명 검토(#3), vc8 준비(#1).
+- **결과**: 카카오 앱 로그인 정상(2026-08-09 vc6, 폴백 미사용). #3는 이미 정합(vc5/v6만 옛 이름). #1 green.
+- **검증**: 오너 실기기 통과(CTO 확인) + git grep(runGoogleAuthSession 잔존 0) + tsc.
+- **관련**: vc5 판단오류 정정(직접 git show로 재확인 후 인정). 병목=테스터 2/12(오너 몫).

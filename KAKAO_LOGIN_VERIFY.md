@@ -1,4 +1,21 @@
-# 카카오 로그인 개통 — 앱 검증 준비 (게이트 ON 대비)
+# 카카오 로그인 개통 — 앱 검증 (✅ 2026-08-09 통과)
+
+## ✅ 결과 — 실기기 통과 (2026-08-09, vc6 APK, 오너 기기)
+```
+관문 2 (Custom Tab)  ✅ "브라우저창 뜨자마자 사라지고 카카오톡 이메일 입력→회원가입창 이동"
+                        = Custom Tab 실행 = 인터셉션 작동 증거. 앱 안(WebView, 주소창 없음) 캡처 확인.
+관문 5~6             ✅ /auth/callback 복귀 → kakaoMode 가입폼 → 제출 → 정회원(실시간 채팅 열림)
+관문 8 (재로그인)     ✅ 재로그인 시 같은 계정 복귀(새 계정 생성 아님)
+DB 확정              auth.users 카카오 계정 생성 · 이메일 정상 수신
+폴백 A/B/C          미사용(불필요). 단 게이트 ON 전 손에 쥐고 있었던 것이 옳았음(실패 시 분 단위 복구).
+```
+**결론: 카카오 로그인 앱 경로 정상 작동.** Android JS발 nav→onShouldStartLoadWithRequest 발화 리스크는 **실기기에서 발화 확인됨**(Custom Tab이 떴으므로). oauth.ts는 HEAD에서 이미 `runOAuthAuthSession`(provider-agnostic)로 정합 — vc5/v6의 옛 이름 `runGoogleAuthSession`은 vc8에서 소멸.
+
+> 아래는 게이트 ON 전 작성한 준비 문서(폴백 포함). 재발/회귀 대비 보존.
+
+---
+
+# (준비 문서) 카카오 로그인 개통 — 앱 검증 준비
 
 > ⚠️ **코드 미수정.** 게이트(NEXT_PUBLIC_KAKAO_LOGIN_ENABLED) ON은 CTO 통보. 켜기 전 준비만.
 > 목적: 켠 직후 **몇 분 안에 성공/실패 판정 → 실패 시 즉시 원인특정 + 게이트 OFF 요청 + 폴백 적용**.
