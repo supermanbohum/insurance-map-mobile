@@ -128,3 +128,10 @@
 - **결과**: 성능=웹 클러스터링+bounds면 OK/전국 일괄이면 저사양 렉(앱 레버 없음, 실기기 필수). 외부이동=https면 앱무변경/nmap://면 EXTERNAL_SCHEMES+iOS LSApplicationQueriesSchemes+재빌드.
 - **검증**: navigation.ts EXTERNAL_SCHEMES 실코드 대조.
 - **관련**: 웹 구현방식 확정 시 앱 판정. vc7 업로드는 오너 PC 대기(변동 없음).
+
+### 카카오톡 공유(Kakao.Share) WebView 조사 (코드 미수정)
+- **무엇**: KAKAO_SHARE_ANALYSIS.md — 현재 스킴 처리 + Expo v57 요건(Android queries, iOS LSApplicationQueriesSchemes) 조사.
+- **왜**: 오너 "카톡으로 앱 공유링크 보내기" 기능, 웹 구현 예정. CTO 조사 지시.
+- **결과**: kakaolink/intent/kakaotalk 이미 EXTERNAL_SCHEMES에 있음(openURL 경로 존재). 🔴 Android 11+는 <queries> 필요(app.json 내장필드 없음→config plugin+재빌드), iOS는 openURL이라 plist 무필수(신뢰성 위해 권장). onShouldStartLoad JS발 발화는 기기 검증 필요.
+- **검증**: navigation.ts/constants.ts 실코드 + Expo v57 문서 2건 WebFetch. 실행검증 불가(기기 없음) 명시.
+- **관련**: 폴백=onNavigationStateChange 인터셉션(카카오로그인 폴백A 동형). 네이티브 SDK 불요.
