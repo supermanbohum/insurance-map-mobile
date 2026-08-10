@@ -51,7 +51,7 @@
 
 ### 푸시 E2E 절차서(오너용) + Play 플랜B
 - **무엇**: PUSH_E2E_CHECKLIST.md(A/B/C 콜드·웜), PLAY_LAUNCH_PLANB.md(내부테스트+12명 요청서).
-- **왜**: 오너 직접 검증 + 8/17 대비 병렬 준비.
+- **왜**: 오너 직접 검증 + 오픈 대비 병렬 준비.
 - **결과**: `1cc79c6`, `195acd8`.
 - **검증**: 착지값 resolve.ts 대조. 빌드준비 tsc+expo-doctor 20/20.
 - **관련**: [[project_launch_8_17]].
@@ -65,7 +65,7 @@
 
 ### 품질조 QA(앱 셸) + 4팀 공유
 - **무엇**: QA_FINDINGS_APP.md. 모바일웹 빈상태 직접점검(홈/지도/커뮤니티) + 셸 코드리뷰 + 실기기 필요항목 분리. 웹/콘텐츠/디자인/CTO 직접 공유.
-- **왜**: 오너 조편성(품질조=웹+앱), 8/17 전 QA.
+- **왜**: 오너 조편성(품질조=웹+앱), 오픈 전 QA.
 - **결과**: `d8ae0b9`. P0 없음. C1(도메인이탈) 웹에 전달. 딥링크 정합성 resolve.ts 대조 확정.
 - **검증**: Browser pane 모바일뷰포트(375) get_page_text/console. 실기기 항목은 8/10 테스터/스모크 위임.
 - **관련**: PUSH_E2E_CHECKLIST, BUILD_SMOKE_CHECKLIST.
@@ -73,7 +73,7 @@
 ### Alpha 빌드 결정 + Play 경고 판정
 - **무엇**: Alpha에 vc9 대신 HEAD 새 빌드 권고(vc9엔 로컬알림 켜져있음). 재설치/재등록 불필요 확인. Android15/16 대형화면 경고 = 비차단 판정.
 - **왜**: 8/10 테스터 최선 빌드 + 오너 1회 안내. CTO 빌드 실패 대비 질의.
-- **결과**: CTO가 HEAD로 production 빌드 시작. 경고는 orientation portrait+targetSdk36 advisory로 폰 영향 0, 8월말 백로그.
+- **결과**: CTO가 HEAD로 production 빌드 시작. 경고는 orientation portrait+targetSdk36 advisory로 폰 영향 0, 추후 백로그.
 - **검증**: 커밋순서(db1a1d6가 vc9 이후) 확인. app.json orientation/sdk/google-services 확인.
 - **관련**: [[project_launch_8_17]].
 
@@ -95,7 +95,7 @@
 ### iOS 출시 가능성 검증 (Apple 문서)
 - **무엇**: Apple App Review Guidelines 직접 확인(4.2.3 최소기능, 5.1.1(ix) 규제분야 법인제출, 3.1.1, 5.1.1(v) 계정삭제) + 개인/조직 계정 규정. iOS 위치 when-in-use 권한 문자열 보강.
 - **왜**: 오너 "iOS 언제 되나" 질문 — 특히 개인계정 가능 여부(구글이 금융오신고로 막았던 건과 동일 리스크인지).
-- **결과**: `0f92c64`(locationWhenInUsePermission 추가). 판정: 개인계정 가능성 높으나 ①법인이면 조직필수 ②5.1.1(ix) 규제분야 오분류 리스크(안드로이드와 동일) ③4.2 WebView셸(iOS 고유, 중간리스크). 8월말 병렬 가능하나 거부 시 9월.
+- **결과**: `0f92c64`(locationWhenInUsePermission 추가). 판정: 개인계정 가능성 높으나 ①법인이면 조직필수 ②5.1.1(ix) 규제분야 오분류 리스크(안드로이드와 동일) ③4.2 WebView셸(iOS 고유, 중간리스크). 오픈에 맞춰 병렬 가능하나 거부 시 지연 가능.
 - **검증**: developer.apple.com/app-store/review/guidelines WebFetch + WebSearch(계정규정).
 - **관련**: [[project_launch_8_17]]. 미착수=Apple가입·팀ID·AASA배포·App Privacy.
 
@@ -135,3 +135,10 @@
 - **결과**: kakaolink/intent/kakaotalk 이미 EXTERNAL_SCHEMES에 있음(openURL 경로 존재). 🔴 Android 11+는 <queries> 필요(app.json 내장필드 없음→config plugin+재빌드), iOS는 openURL이라 plist 무필수(신뢰성 위해 권장). onShouldStartLoad JS발 발화는 기기 검증 필요.
 - **검증**: navigation.ts/constants.ts 실코드 + Expo v57 문서 2건 WebFetch. 실행검증 불가(기기 없음) 명시.
 - **관련**: 폴백=onNavigationStateChange 인터셉션(카카오로그인 폴백A 동형). 네이티브 SDK 불요.
+
+### 오픈 날짜(8/17) 전면 제거
+- **무엇**: 앱 repo 문서의 오픈/출시 날짜(8/17·8월말·8/24·9월) 전량 제거 → 날짜 없는 표현("오픈"·"일정 미정"). PLAY_LAUNCH_PLANB/PLAY_STORE_RELEASE/QA_FINDINGS_APP/WORKLOG.
+- **왜**: 오너 지시 "8월17일 오픈 안 함, 숫자 지워라, 새 날짜 쓰지 마라".
+- **결과**: grep 재검색 잔재 0. 빌드·커밋 등 역사적 날짜 + 8/10 테스터 설치일(운영)은 유지.
+- **검증**: `grep 8/17|8월말|8/24|9월` = 0건.
+- **관련**: [[project_launch_8_17]] 메모리도 갱신(오픈일 미정으로).
