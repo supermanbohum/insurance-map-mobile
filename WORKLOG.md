@@ -119,3 +119,12 @@
 - **결과**: 카카오 앱 로그인 정상(2026-08-09 vc6, 폴백 미사용). #3는 이미 정합(vc5/v6만 옛 이름). #1 green.
 - **검증**: 오너 실기기 통과(CTO 확인) + git grep(runGoogleAuthSession 잔존 0) + tsc.
 - **관련**: vc5 판단오류 정정(직접 git show로 재확인 후 인정). 병목=테스터 2/12(오너 몫).
+
+## 2026-08-10
+
+### 전국 지점 지도(⑪) 앱영향 분석 (코드 미수정)
+- **무엇**: MAP_NATIONWIDE_ANALYSIS.md — 마커 대량렌더 성능 + 네이버 외부이동 조건매트릭스.
+- **왜**: 제품 개편(지점 홍보+랭킹 주력). CTO 분석 지시(미확정 기능).
+- **결과**: 성능=웹 클러스터링+bounds면 OK/전국 일괄이면 저사양 렉(앱 레버 없음, 실기기 필수). 외부이동=https면 앱무변경/nmap://면 EXTERNAL_SCHEMES+iOS LSApplicationQueriesSchemes+재빌드.
+- **검증**: navigation.ts EXTERNAL_SCHEMES 실코드 대조.
+- **관련**: 웹 구현방식 확정 시 앱 판정. vc7 업로드는 오너 PC 대기(변동 없음).
