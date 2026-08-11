@@ -1,5 +1,29 @@
 # 카카오톡 공유(Kakao.Share) in WebView — 조사 결과
 
+# ✅ 최종 결론 (2026-08-11 종결) — **앱 변경 없음. 재빌드 사유 없음.**
+```
+③ 오너 실기기 결과 = ⓐ "문제없이 공유됨" (카카오톡 정상 실행)
+④ 판정 확정:
+   intent:// 처리        RN Linking.openURL이 정상 처리함 (우려했던 Uri.parse 실패 없음)
+   Android <queries>     ❌ 불필요  ← 잠정 판정이 실기기로 확정됨
+   kakaolink 재조립 대응안 ❌ 불필요  ← 준비만 하고 미사용
+   재빌드                ❌ 불필요. vc7 그대로 간다
+```
+**검증 경로 4단계 전부 통과**: ①SDK 도메인 등록(오너) → ②데스크톱 UA(CTO·앱팀, 양쪽 호스트) → ②모바일 UA 스킴 캡처(앱팀) → ③실기기(오너).
+
+### 📌 준비했으나 쓰지 않은 대응안 — **폐기하지 않고 근거와 함께 보존**
+> 다음 사람이 같은 우려를 처음부터 다시 판단하지 않도록 남긴다.
+- **우려였던 것**: `intent://send?…#Intent;scheme=kakaolink;…`를 RN `Linking.openURL`이 `Uri.parse` 기반으로 처리해 **ActivityNotFoundException**이 날 수 있다(폴백 URL도 없어 무반응). → **실기기에서 정상 동작 확인, 기우였음.**
+- **준비했던 대응안(미사용)**: `intent://`를 만나면 fragment의 `scheme=kakaolink`를 읽어 `kakaolink://send?…`로 재조립해 openURL. `kakaolink:`는 이미 `EXTERNAL_SCHEMES`에 있음.
+- **`<queries>` config plugin이 불필요한 이유**: 캡처된 URL에 **`package=` 지정이 없다** → 특정 패키지 **조회**가 아니라 **암시적 인텐트 실행(startActivity)** 이라, Android 11+ 패키지 가시성 제한 대상이 아니다.
+- **재검토 조건**: 카카오 SDK가 향후 `package=com.kakao.talk`를 붙이거나 `canOpenURL` 기반 분기를 쓰기 시작하면 그때 다시 판단.
+
+### 📌 share 브릿지(앱 이탈 없는 네이티브 공유) — **착수 조건 변경**
+ⓐ로 확인되어 **사용자 경험은 이미 온전하다**(카카오톡이 정상 실행). 따라서 지금 붙일 이유가 약하다.
+→ **착수 조건: Apple 개발자 가입 완료 + iOS 심사 준비 시점**(4.2 방어 보강용). 그 전에는 착수하지 않는다. 앱 수신부는 이미 구현돼 있어 웹 분기 한 줄이면 되고 재빌드도 불필요하다.
+
+---
+
 ## ✅ 해결 확인 (2026-08-11, 오너가 JavaScript SDK 도메인 등록 후 재실측)
 ```
 데스크톱 UA   bohummap.com      → window.open("https://sharer.kakao.com/picker/link")   ✅ 정상 picker

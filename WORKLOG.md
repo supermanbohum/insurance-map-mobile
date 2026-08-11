@@ -253,3 +253,10 @@
   - ⚠️ **새 변수**: RN Linking.openURL은 Uri.parse 기반이라 `intent://`를 못 열 수 있음(Intent.parseUri 아님) → 대응안: fragment의 scheme=kakaolink를 읽어 `kakaolink://send?…`로 재조립(kakaolink:는 이미 EXTERNAL_SCHEMES에 있음). 재빌드 필요.
 - **검증**: navigate 이벤트 캡처(전송·팝업 차단 유지), package/fallback/스킴 파싱. **RN 동작 차이 가능성 있어 단정하지 않고 실기기 3분기로 확정 예정.**
 - **관련**: 도메인 인증은 모바일에서도 통과(-401 없이 스킴 생성) → 01-home "요청 실패 화면" 리스크는 해소.
+
+### ✅ 카카오 공유 종결 — ⓐ 확정, 재빌드 불필요
+- **무엇**: 오너 실기기 결과 ⓐ("문제없이 공유됨", 카카오톡 정상 실행) 수신 → ④ 판정 확정. KAKAO_SHARE_ANALYSIS 최상단에 최종 결론 + **준비했으나 미사용한 대응안을 근거와 함께 보존**(CTO 지시: 폐기하면 다음 사람이 같은 우려를 재판단).
+- **왜**: intent:// 처리·Android <queries> 필요성이 재빌드 사유였음.
+- **결과**: RN Linking.openURL이 intent:// 정상 처리(우려 기우). **<queries> 불필요**(package= 없는 암시적 인텐트라 가시성 제한 대상 아님). **앱 변경 0, 재빌드 0, vc7 그대로.** 재검토 조건(SDK가 package= 붙이거나 canOpenURL 분기 시)도 기록.
+- **검증**: 4단계 전부 통과 — ①오너 SDK도메인 등록 ②데스크톱 UA(CTO·앱팀 양쪽 호스트) ②모바일 UA 스킴 캡처(앱팀) ③오너 실기기.
+- **관련**: share 브릿지 착수 조건을 **"Apple 가입 완료 + iOS 심사 준비 시점"**으로 변경 기록(ⓐ라 UX는 이미 온전, 4.2 방어용으로만 남음). 01-home 스크린샷 완전 해제(CTO가 콘텐츠 통보).
