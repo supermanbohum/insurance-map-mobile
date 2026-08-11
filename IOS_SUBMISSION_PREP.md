@@ -24,23 +24,28 @@ financial services. It is a professional directory + community + recruiting serv
 (similar to a B2B networking/jobs directory). No financial transactions occur in the app.
 
 Native functionality (re: Guideline 4.2 — this is not a repackaged website):
-1. Push notifications — permission requested on first launch; used for chat / profile-view /
-   recruiting alerts (server-triggered).
+1. Push notifications — permission requested on first launch; notification taps are routed
+   natively to the matching in-app screen (deep-link resolution in the app layer).
 2. Universal Links — https://bohummap.com/... links open directly in the app
-   (apple-app-site-association hosted on the domain).
-3. Biometric app lock — Face ID / Touch ID to lock the app (Settings → app lock).
-4. Native QR scanner — camera-based QR scan for business cards / profiles.
-5. Native share sheet — share branch/agent profiles via the iOS share sheet.
-6. Haptics — tactile feedback on key interactions.
-7. Location — device GPS to show nearby GA branches on the map ("지도에서 찾기" → my location).
-8. Save-to-Photos — download images into the device photo library.
-9. Native animated splash + offline handling + pull-to-refresh.
+   (apple-app-site-association hosted on the domain), including cold-start routing.
+3. Native OAuth hand-off — Kakao sign-in is intercepted by the app and completed in a
+   secure external auth session, then returns to the app via the custom scheme.
+4. Location — the app requests location permission so the map can show the user's position.
+5. Save-to-Photos — downloads are saved into the device photo library.
+6. Native launch experience — animated splash, offline overlay with auto-recovery,
+   error/retry screen, and native back-navigation handling.
 
 How to test:
 - Launch the app → native splash → allow notifications & location when prompted.
 - Tap "지도에서 찾기" (Find on map) → grant location → map shows current position.
-- Open any branch/profile → tap Share → the native iOS share sheet appears.
-- (Biometric lock) Settings → enable app lock → background & reopen → Face ID/Touch ID prompt.
+- Sign in with Kakao → an external auth session opens and returns to the app automatically.
+- Turn off network → a native offline screen appears and recovers when back online.
+
+⚠️ 앱팀 메모(제출 전 확인, 심사노트에 넣지 말 것): 앱에는 QR 스캐너·생체 앱잠금·네이티브
+공유·햅틱도 **구현돼 있으나, 전부 웹이 브릿지를 호출해야 열린다.** 2026-08-11 웹 확인 결과
+`open-qr-scanner` 호출부 **0건(QR은 사용자 도달 불가)**, 앱 잠금도 앱 내부 설정 UI가 없어
+웹의 `set-biometric-lock` 없이는 켤 수 없음. **도달 불가 기능을 심사노트에 적으면 리뷰어가
+찾다가 못 찾는다(= 허위 기재).** 웹이 브릿지를 호출하기 시작하면 그때 위 목록에 되살릴 것.
 
 Test account (member features such as chat / registration require sign-in):
 - Email: (오너가 발급)
