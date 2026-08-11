@@ -12,7 +12,17 @@ export const PROTOCOL_VERSION = 1 as const;
 
 export type HapticStyle = 'light' | 'medium' | 'success' | 'error' | 'selection';
 
-/** 앱이 지원함을 웹에 알리는 기능 목록. 구현된 것만 광고한다(정직하게). */
+/**
+ * 앱이 지원함을 웹에 알리는 기능 목록. 구현된 것만 광고한다(정직하게).
+ *
+ * ⚠️ **광고 ≠ 사용자 도달 가능.** 이 목록은 "앱에 수신부가 있다"는 뜻일 뿐이고,
+ * **웹이 해당 메시지를 실제로 보내야만** 사용자가 그 기능을 쓸 수 있다.
+ * 2026-08-11 웹 grep 실측: `share`·`request-biometric`·`set-biometric-lock`·`open-qr-scanner`·
+ * `set-badge`·`toast` **발신 0건**(웹 타입 선언만 존재) → 그 기능들은 **사용자 도달 불가**.
+ * 유일한 발신은 `haptic`(웹 src/lib/native/haptics.ts).
+ * → **스토어 설명·심사노트에 "앱 전용 기능"으로 적을 때는 반드시 웹 발신부를 먼저 확인할 것.**
+ *   (없는 기능을 적으면 리뷰어가 찾다 못 찾아 4.2 방어가 통째로 무너진다.)
+ */
 export type Capability =
   | 'haptic'
   | 'push'

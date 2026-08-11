@@ -193,3 +193,10 @@
 - **결과**: **sharer.kakao.com/picker/failed → KAPIError -401 "domain mismatched! caller=https://bohummap.com"**. 카카오 콘솔 [플랫폼>Web>사이트 도메인] 미등록이 원인. **앱/WebView 문제 아님 — 웹 브라우저에서도 실패.** 오너가 콘솔에서 등록해야 함(코드 변경 불필요). 부수 확인: JS SDK 미로드, **https 링크 방식(kakaolink:// 스킴 아님)** → Android <queries> 불필요 가능성↑, 단 앱에선 외부 브라우저로 이탈.
 - **검증**: window.open/iframe/링크 후킹으로 실제 전송·팝업 차단 후 URL만 포착 → error 파라미터 base64 디코드. UA는 Android Chrome 에뮬레이트(모바일 경로 확인).
 - **관련**: 선행=오너 콘솔 등록 → 그 다음 실기기 재확인 → 앱은 브릿지 네이티브 공유 분기 권고(앱 작업 0).
+
+### 브릿지 도달성 확정 — haptic만 살아있음
+- **무엇**: 웹 grep 결과(6종 발신 0건, haptic만 1곳) 수신 + 앱 `parseWebMessage` 확인 → **앱은 `v` 미검사**(type만 확인, 타입도 `v?: number` 선택) → **haptic은 코드상 도달 가능**. protocol.ts Capability 주석에 "광고 ≠ 도달 가능" 경고 + 실측 결과 명시.
+- **왜**: 웹이 "haptic 봉투에 v:1 없음, ReactNativeWebView.postMessage 직접 호출 — 앱이 검사하면 버려진다" 질의.
+- **결과**: 앱 수신부는 관대(v 무관, 원시 postMessage 정상 수신) → haptic 유일 생존. 나머지(share·biometric 2종·set-badge·toast·qr) 도달 불가 확정 — 스토어 설명·심사노트에서 이미 제거됨. **haptic은 심사노트에 넣지 않음**(실기기 진동 미검증 + 리뷰어 도달 어려운 화면 3곳).
+- **검증**: protocol.ts parseWebMessage 실코드. tsc 통과(주석만 변경, 동작 변화 0).
+- **관련**: capabilities 광고가 함정이었다는 CTO 지적 → 코드에 경고 상주시켜 재발 방지.
