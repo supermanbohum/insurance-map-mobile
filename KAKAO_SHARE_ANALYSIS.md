@@ -1,6 +1,31 @@
 # 카카오톡 공유(Kakao.Share) in WebView — 조사 결과
 
-## 🔴 실측 결과 (2026-08-11) — **공유가 지금 웹에서도 실패한다. 앱 문제가 아니다.**
+## ✅ 해결 확인 (2026-08-11, 오너가 JavaScript SDK 도메인 등록 후 재실측)
+```
+데스크톱 UA   bohummap.com      → window.open("https://sharer.kakao.com/picker/link")   ✅ 정상 picker
+             www.bohummap.com  → 동일 ✅                     (이전: /picker/failed -401)
+SDK 상태      kakao.min.js 2.8.2 로드 + isInitialized() === true   (이전: window.Kakao 자체가 없었음)
+error 파라미터 없음
+```
+→ **웹 카카오 공유 살아났다. 원인은 확정대로 ①JavaScript SDK 도메인 미등록이었다.** 양쪽 호스트 모두 통과.
+
+### 🔴 그런데 **모바일 UA에서는 동작이 다르다** — 앱 판정에 직결
+같은 버튼을 **모바일 UA(Android Chrome 에뮬레이트)**로 누르면:
+```
+window.open 호출 없음 · 페이지 이동 없음 · iframe 없음 · 에러 없음  → 브라우저에선 "아무 일도 없음"
+```
+= SDK가 **모바일 경로(카카오톡 앱 실행 = 커스텀 스킴/인텐트)**를 시도하고, 데스크톱 Chromium엔 카카오톡이 없어 조용히 끝난 것으로 판단된다.
+→ **앱(WebView)에서는 이 경로를 타므로 스킴 처리가 관건이 된다.** 스킴 실물은 브라우저로 캡처하지 못했다(location 직접 대입은 후킹 불가) → **실기기 확인 필요**:
+```
+오너 폰에서 앱의 공유 버튼 클릭 시
+  ⓐ 카카오톡이 열린다        → 스킴 정상 처리. Android <queries> 불필요 or 이미 충족
+  ⓑ 아무 일도 안 일어난다     → 🔴 스킴 차단. Android <queries>(com.kakao.talk) config plugin + 재빌드 필요
+  ⓒ 외부 브라우저로 sharer.kakao.com 이 열린다 → https 폴백. 동작하나 앱 이탈
+```
+
+---
+
+## (이력) 실측 결과 (2026-08-11 오전) — **공유가 웹에서도 실패했다. 앱 문제가 아니었다.**
 홈 히어로의 「친구에게 보험맵 공유하기」를 **모바일 UA(Android Chrome/Pixel 8 에뮬레이트)에서 실제로 클릭**한 결과:
 ```
 이동한 URL : https://sharer.kakao.com/picker/failed?app_key=1c136b8d…&error=…
