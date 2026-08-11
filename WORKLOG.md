@@ -186,3 +186,10 @@
 - **결과**: 신고서가 사실과 정합(정밀=수집 안 함 / 대략=수집, ephemeral 미체크). 방침에도 "저장하지 않습니다" 문구 미사용 합의.
 - **검증**: 웹 코드 사실(searchThisArea → router.push(`/map?bbox=`)) + Play Ephemeral 정의 대조. 과소 기재는 접근 로그로 반박 가능해 더 불리하다는 판단.
 - **관련**: 같은 항목 3회 정정 — 확신 없으면 보수적 신고 원칙 재확인.
+
+### 🔴 카카오 공유 실측 — 웹에서도 실패(도메인 미등록) 발견
+- **무엇**: 홈 「친구에게 보험맵 공유하기」를 모바일 UA로 실제 클릭. 결과를 KAKAO_SHARE_ANALYSIS.md 최상단에 기록.
+- **왜**: CTO 지시 "추정하지 말고 눌러보라"(웹 GlobalShareButton에 앱 브릿지 분기 없음 확인 후).
+- **결과**: **sharer.kakao.com/picker/failed → KAPIError -401 "domain mismatched! caller=https://bohummap.com"**. 카카오 콘솔 [플랫폼>Web>사이트 도메인] 미등록이 원인. **앱/WebView 문제 아님 — 웹 브라우저에서도 실패.** 오너가 콘솔에서 등록해야 함(코드 변경 불필요). 부수 확인: JS SDK 미로드, **https 링크 방식(kakaolink:// 스킴 아님)** → Android <queries> 불필요 가능성↑, 단 앱에선 외부 브라우저로 이탈.
+- **검증**: window.open/iframe/링크 후킹으로 실제 전송·팝업 차단 후 URL만 포착 → error 파라미터 base64 디코드. UA는 Android Chrome 에뮬레이트(모바일 경로 확인).
+- **관련**: 선행=오너 콘솔 등록 → 그 다음 실기기 재확인 → 앱은 브릿지 네이티브 공유 분기 권고(앱 작업 0).

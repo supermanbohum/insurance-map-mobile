@@ -1,5 +1,37 @@
 # 카카오톡 공유(Kakao.Share) in WebView — 조사 결과
 
+## 🔴 실측 결과 (2026-08-11) — **공유가 지금 웹에서도 실패한다. 앱 문제가 아니다.**
+홈 히어로의 「친구에게 보험맵 공유하기」를 **모바일 UA(Android Chrome/Pixel 8 에뮬레이트)에서 실제로 클릭**한 결과:
+```
+이동한 URL : https://sharer.kakao.com/picker/failed?app_key=1c136b8d…&error=…
+error(base64 디코드):
+  {"name":"KAPIError",
+   "msg":"domain mismatched! caller=https://bohummap.com. check out registered web domains.",
+   "code":-401, "recovery_action":"NONE"}
+화면 문구  : "요청 실패 / 잘못된 요청으로 인증에 실패하였습니다"
+```
+→ **원인: 카카오 개발자 콘솔의 [플랫폼 > Web > 사이트 도메인]에 `https://bohummap.com`이 등록돼 있지 않음.**
+※ CTO가 준 "앱 대표 도메인 = https://bohummap.com"과 **별개 설정**이다. 대표 도메인만으로는 JS 공유가 통과하지 않는다. app_key는 JavaScript 키와 일치 → **키는 맞고 도메인 등록만 빠졌다.**
+→ **조치 주체: 오너(카카오 콘솔). 앱·웹 코드 변경 불필요.** 등록 후 재확인하면 된다.
+
+## ✅ 부수 확인 — 구현 방식이 예상과 달랐다(앱에 유리)
+```
+window.Kakao        undefined  (JS SDK 로드 안 됨, kakao script 태그 0개)
+실제 동작            sharer.kakao.com/picker 로 **https 이동**
+```
+→ **`kakaolink://` 커스텀 스킴이 아니라 https 링크 방식**이다. 따라서:
+- 아래 §3에서 우려한 **Android `<queries>` config plugin이 필요 없을 가능성이 높다**(커스텀 스킴을 앱이 열 필요가 없음).
+- 앱에서는 sharer.kakao.com이 bohummap.com이 아니므로 `shouldOpenExternally` → **외부 브라우저로 열린다**(현재 동작). 기능은 되지만 **사용자가 앱을 벗어난다.**
+- ⚠️ 단 도메인 등록 후 카카오가 **모바일에서 스킴으로 분기**할 수도 있으므로, 등록 후 **실기기 재확인 필요**(그때 §3 queries 판단을 확정).
+
+## 권고
+1. **[오너] 카카오 콘솔에 웹 사이트 도메인 등록** → 그래야 웹·앱 양쪽에서 공유가 산다. **이게 선행**이다.
+2. **[웹] 앱에서는 브릿지 네이티브 공유로 분기**(`window.__boheom.isApp` → `send({type:'share',…})`) → 앱을 벗어나지 않고 카카오톡 포함 전 앱으로 공유. 앱 수신부는 이미 구현돼 있어 **앱 작업·재빌드 0**.
+3. 위 1이 끝난 뒤 **실기기에서 재확인**(스킴 분기 여부 → queries 필요성 확정).
+
+---
+
+
 > CTO 요청: 조사만. 코드 미수정. ⚠️ 앱팀 **실기기·빌드 검증 불가** → 코드/문서로 확인 가능한 것만. 실기기 필요 항목은 **[기기]** 표시.
 > 근거: Expo SDK 57 문서(docs.expo.dev/versions/v57.0.0/sdk/linking, docs.expo.dev/linking/into-other-apps) 직접 확인.
 > 카카오 앱: 비즈앱 ID 1521008, 네이티브키 14957dc0…, JS키 1c136b8d…, 대표도메인 bohummap.com.
