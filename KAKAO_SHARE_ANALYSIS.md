@@ -14,6 +14,25 @@ error(base64 디코드):
 ※ CTO가 준 "앱 대표 도메인 = https://bohummap.com"과 **별개 설정**이다. 대표 도메인만으로는 JS 공유가 통과하지 않는다. app_key는 JavaScript 키와 일치 → **키는 맞고 도메인 등록만 빠졌다.**
 → **조치 주체: 오너(카카오 콘솔). 앱·웹 코드 변경 불필요.** 등록 후 재확인하면 된다.
 
+### 🔴 재확인 (오너 등록 직후, 2026-08-11) — **여전히 실패. "www 유무" 가설은 반증됨**
+오너가 `https://bohummap.com`을 추가했다는 통보를 받고 **양쪽 호스트에서 각각 클릭**(실제 전송은 후킹으로 차단):
+```
+https://bohummap.com      → picker/failed · "domain mismatched! caller=https://bohummap.com"
+https://www.bohummap.com  → picker/failed · "domain mismatched! caller=https://www.bohummap.com"
+                             ^^^^ 등록돼 있었다던 www 도 거부됨
+```
+**두 호스트 모두 거부** → 원인은 www 유무가 아니다. **카카오가 검사하는 곳에 우리 도메인이 하나도 등록돼 있지 않다는 뜻.**
+
+**가장 유력한 원인: 등록 위치가 다르다.** 카카오 콘솔에는 도메인 입력란이 여러 곳이고 **서로 별개**다:
+```
+✅ 검사 대상   [내 애플리케이션 > 앱 설정 > 플랫폼 > Web] "사이트 도메인"   ← JS 공유·SDK가 보는 곳
+❌ 무관        [앱 설정 > 앱 대표 도메인]        (CTO가 준 "대표 도메인=bohummap.com"이 이것일 가능성)
+❌ 무관        [제품 설정 > 카카오 로그인 > Redirect URI]
+❌ 무관        [앱 설정 > 비즈니스 > 도메인]
+```
+→ **오너 확인 요청**: [앱 설정 > **플랫폼 > Web**] 화면에 `https://bohummap.com` 과 `https://www.bohummap.com` 이 **둘 다** 들어 있는지, **저장**했는지. (스킴 `https://` 포함, 경로 없이 도메인만. 최대 10개 등록 가능)
+※ app_key는 JavaScript 키와 일치하므로 **다른 앱을 보고 있는 것은 아님**. 반영 지연 가능성도 남아 있어 **재등록 확인 후 재시도**하면 판정된다.
+
 ## ✅ 부수 확인 — 구현 방식이 예상과 달랐다(앱에 유리)
 ```
 window.Kakao        undefined  (JS SDK 로드 안 됨, kakao script 태그 0개)
