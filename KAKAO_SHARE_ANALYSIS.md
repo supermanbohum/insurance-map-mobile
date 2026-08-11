@@ -15,7 +15,25 @@ error 파라미터 없음
 window.open 호출 없음 · 페이지 이동 없음 · iframe 없음 · 에러 없음  → 브라우저에선 "아무 일도 없음"
 ```
 = SDK가 **모바일 경로(카카오톡 앱 실행 = 커스텀 스킴/인텐트)**를 시도하고, 데스크톱 Chromium엔 카카오톡이 없어 조용히 끝난 것으로 판단된다.
-→ **앱(WebView)에서는 이 경로를 타므로 스킴 처리가 관건이 된다.** 스킴 실물은 브라우저로 캡처하지 못했다(location 직접 대입은 후킹 불가) → **실기기 확인 필요**:
+### ✅ 스킴 실물 캡처 성공 (Navigation API 후킹, 모바일 UA)
+`window.navigation`의 `navigate` 이벤트로 **커스텀 스킴 이동 시도까지 포착**했다(총 6,951자):
+```
+intent://send?appkey=1c136b8d…&appver=1.0&linkver=4.0&extras={"KA":"sdk/2.8.2 os/javascript …}
+        …&template_id=3139#Intent;scheme=kakaolink;launchFlags=0x14008000;end;
+```
+| 항목 | 값 | 판정 의미 |
+|---|---|---|
+| 스킴 | **`intent://`** (kakaolink:// 직접 아님) | Android intent scheme |
+| Intent fragment | `#Intent;scheme=kakaolink;launchFlags=0x14008000;end;` | 실제 목표 스킴은 **kakaolink** |
+| **`package=`** | **없음** | 패키지 미지정 = **암시적 인텐트** → `startActivity`는 Android 11+ 가시성 제한과 무관 → **`<queries>` 불필요 가능성 높음** |
+| **`S.browser_fallback_url=`** | **없음** | 실패해도 **폴백이 없다** → 실패 시 "아무 일도 안 일어남"(ⓑ)이 된다 |
+
+**→ ④ Android `<queries>` 판정: 필요 없을 가능성이 높다**(패키지 조회가 아니라 암시적 인텐트 실행이므로). ⚠️ **대신 새 변수가 드러났다**:
+> **RN `Linking.openURL("intent://…")`이 이 URL을 처리하지 못할 수 있다.** RN Android는 `Intent.parseUri(url, URI_INTENT_SCHEME)`가 아니라 `Uri.parse`로 처리하므로, `intent://`를 그대로 열면 **ActivityNotFoundException**이 날 수 있다(브라우저/WebView가 하던 파싱을 앱이 대신 해야 함). 폴백 URL도 없어 조용히 실패한다.
+>
+> **대응안(실기기 결과가 ⓑ일 때만 적용)**: `intent://` 를 만나면 fragment의 `scheme=kakaolink`를 읽어 **`kakaolink://send?…`로 재조립해 `openURL`** 한다(1~2줄). `kakaolink:`는 **이미 EXTERNAL_SCHEMES에 있다** ✅. 재빌드 필요.
+
+⚠️ **단정하지 않는다**: RN 버전별 동작 차이가 있을 수 있어 **실기기 결과로 확정**한다. 아래 3분기 그대로:
 ```
 오너 폰에서 앱의 공유 버튼 클릭 시
   ⓐ 카카오톡이 열린다        → 스킴 정상 처리. Android <queries> 불필요 or 이미 충족

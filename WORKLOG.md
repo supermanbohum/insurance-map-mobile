@@ -243,3 +243,13 @@
 - **🔴 추가 발견**: **모바일 UA에서는 window.open/이동/iframe 전부 없음** = SDK가 카카오톡 앱 실행(스킴/인텐트) 경로를 탐. **앱 WebView는 이 경로를 타므로 스킴 처리가 관건** → 실기기 3분기(ⓐ카톡 열림=queries 불필요 / ⓑ무반응=queries+재빌드 필요 / ⓒ외부브라우저=폴백·앱이탈) 문서화.
 - **검증**: window.open 후킹으로 URL 캡처(실제 전송 차단), error 파라미터 없음 확인, 양쪽 호스트 각각.
 - **관련**: ④ Android queries 판정은 **오너 폰 클릭 결과**로만 확정 가능(내 환경에선 스킴 실물 캡처 불가).
+
+### 🎯 카카오 공유 스킴 실물 캡처 (Navigation API) — queries 판정 재료 확보
+- **무엇**: 모바일 UA에서 Navigation API(`navigate` 이벤트)로 커스텀 스킴 이동 시도 포착. 전체 6,951자 URL 분석 후 문서화.
+- **왜**: 콘텐츠 게이트(01-home 해제)가 "앱팀 모바일 실측"까지였고, ④ queries 판정도 스킴 실물이 필요했음. 앞선 "아무 일도 없음"은 성공/실패가 같은 모양이라 판정 불가였음.
+- **결과**: `intent://send?appkey=…#Intent;scheme=kakaolink;launchFlags=0x14008000;end;`
+  - **package= 없음** → 암시적 인텐트 → startActivity는 Android 11+ 가시성 무관 → **<queries> 불필요 가능성 높음**
+  - **browser_fallback_url 없음** → 실패 시 폴백 없이 무반응(ⓑ)
+  - ⚠️ **새 변수**: RN Linking.openURL은 Uri.parse 기반이라 `intent://`를 못 열 수 있음(Intent.parseUri 아님) → 대응안: fragment의 scheme=kakaolink를 읽어 `kakaolink://send?…`로 재조립(kakaolink:는 이미 EXTERNAL_SCHEMES에 있음). 재빌드 필요.
+- **검증**: navigate 이벤트 캡처(전송·팝업 차단 유지), package/fallback/스킴 파싱. **RN 동작 차이 가능성 있어 단정하지 않고 실기기 3분기로 확정 예정.**
+- **관련**: 도메인 인증은 모바일에서도 통과(-401 없이 스킴 생성) → 01-home "요청 실패 화면" 리스크는 해소.
