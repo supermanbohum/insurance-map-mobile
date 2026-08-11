@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# MCP config (contains secrets) - never commit
+.mcp.json
+.tmp-store-assets/
+
+# local editor/runtime config (absolute paths, machine-specific)
+.claude/launch.json
