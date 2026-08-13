@@ -1,3 +1,19 @@
+# 🔴 세션 시작 규칙 (오너 지시, 2026-08-12)
+
+**1. 작업 시작 전 [STATUS.md](STATUS.md)를 먼저 읽는다.**
+현재 상태·오너 대기 항목·이미 종결된 것·내 환경 제약이 한 장에 있다.
+**이미 답이 난 것을 다시 조사하지 않기 위한 문서다.**
+
+**2. 작업이 끝날 때마다 두 곳을 갱신한다.**
+```
+STATUS.md    현재 상태가 바뀌었으면 갱신(한 장 유지 — 길어지면 WORKLOG로 밀어낸다)
+WORKLOG.md   무엇 / 왜 / 결과 / 검증 / 관련  형식으로 append(상세 이력)
+```
+**3. 세션이 바뀌어도 이어지도록 남긴다.** 대화는 사라져도 파일은 남는다.
+**"기억"에 의존하지 말고 파일에 적는다.**
+
+---
+
 # Expo HAS CHANGED
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
